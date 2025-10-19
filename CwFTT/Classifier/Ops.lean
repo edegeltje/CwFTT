@@ -130,12 +130,14 @@ instance : SymmetricCategory C where
   braiding X Y := prod.braiding X Y
   braiding_naturality_right X {Y Z} f := by
     apply Limits.prod.hom_ext
-    rw [prod.braiding_hom,prod.braiding_hom,prod.comp_lift,← snd_def,
-      CartesianMonoidalCategory.whiskerLeft_snd,
-      prod.lift_fst,Category.assoc,← fst_def (X := Z),
-      CartesianMonoidalCategory.whiskerRight_fst,fst_def]
-    simp only [limit.lift_π_assoc, BinaryFan.mk_pt, pair_obj_left, BinaryFan.mk_fst]
-    rw [snd_def]
+    · rw [prod.braiding_hom,prod.braiding_hom,prod.comp_lift,← snd_def,
+        CartesianMonoidalCategory.whiskerLeft_snd,
+        prod.lift_fst,Category.assoc,← fst_def (X := Z),
+        CartesianMonoidalCategory.whiskerRight_fst,fst_def]
+      simp only [limit.lift_π_assoc, BinaryFan.mk_pt, pair_obj_left, BinaryFan.mk_fst]
+      rw [snd_def]
+    ·
+      sorry
 
 
 
@@ -143,19 +145,6 @@ instance : SymmetricCategory C where
   hexagon_forward := _
   hexagon_reverse := _
   symmetry := _
--- attribute [local instance] monoidalOfHasFiniteProducts
-
-
--- example : inferInstanceAs (MonoidalCategory C) =
---     (inferInstanceAs (CartesianMonoidalCategory C)).toMonoidalCategory := by
---   dsimp [inferInstanceAs]
---   dsimp [monoidalOfHasFiniteProducts]
---   -- dsimp [CartesianMonoidalCategory.ofHasFiniteProducts]
---   dsimp [instCartesianMonoidalCategoryOfHasTerminalOfHasBinaryProducts_cwFTT]
---   dsimp [CartesianMonoidalCategory.ofChosenFiniteProducts]
---   congr!
---   dsimp [prod.map,limMap]
---   rfl
 
 /-- the contravariant functor mapping objects `X` to "the object representing its subobjects",
   which is `X ⟹ 𝒞.Ω` -/
@@ -167,6 +156,9 @@ noncomputable def Classifier.P (𝒞 : Classifier C) [HasFiniteLimits C] [Cartes
 noncomputable def Classifier.POp (𝒞 : Classifier C) [HasFiniteLimits C] [CartesianClosed C] :
     C ⥤ Cᵒᵖ := (𝒞.P ⋙ opOp C).unop
 
+
+instance (𝒞 : Classifier C) [HasFiniteLimits C] [CartesianClosed C] : MonadicRightAdjoint (𝒞.P) :=
+  sorry
 
 noncomputable def Classifier.P_adjoint (𝒞 : Classifier C) [HasFiniteLimits C] [CartesianClosed C] :
     𝒞.POp ⊣ 𝒞.P where
