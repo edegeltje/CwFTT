@@ -116,65 +116,84 @@ lemma Classifier.and_assoc (𝒞 : Classifier C) [HasBinaryProducts C] {X : C} (
     simp [← Category.assoc]
 end and
 
-section or
+section colimits
 open scoped MonoidalCategory CartesianMonoidalCategory
 
+/--
+naturality is shown by uncurrying, and showing that the following diagram commutes:
+https://q.uiver.app/#q=WzAsMTksWzEsMCwiWCJdLFsxLDEsIlxcT21lZ2Fee1xcT21lZ2FeWH0iXSxbMiwwLCJYXFx0aW1lcyBcXE9tZWdhXlgiXSxbMiwxLCJcXE9tZWdhXntcXE9tZWdhXlh9XFx0aW1lcyBcXE9tZWdhXlgiXSxbMywxLCJcXE9tZWdhIl0sWzMsMCwiXFxPbWVnYV5YXFx0aW1lcyBYIl0sWzAsMiwiXFxPbWVnYV57XFxPbWVnYV5ZfSJdLFswLDEsIlkiXSxbMCw0LCJcXE9tZWdhXntcXE9tZWdhXlh9XFx0aW1lcyBcXE9tZWdhXlkiXSxbMCw1LCJcXE9tZWdhXntcXE9tZWdhXll9XFx0aW1lcyBcXE9tZWdhXlkiXSxbMiw2LCJcXE9tZWdhIl0sWzEsNCwiXFxPbWVnYV57XFxPbWVnYV5YfVxcdGltZXMgXFxPbWVnYV5YIl0sWzIsMiwiWFxcdGltZXNcXE9tZWdhXlkiXSxbMSwzLCJYXFx0aW1lc1xcT21lZ2FeWCJdLFsyLDQsIlxcT21lZ2FeWFxcdGltZXMgWCJdLFszLDMsIlxcT21lZ2FeWVxcdGltZXMgWCJdLFszLDQsIlxcT21lZ2FeWVxcdGltZXMgWSJdLFs0LDQsIllcXHRpbWVzXFxPbWVnYV5ZIl0sWzQsNSwiXFxPbWVnYV57XFxPbWVnYV5ZfVxcdGltZXMgXFxPbWVnYV5ZIl0sWzMsNCwiZXYiXSxbMCwxLCJcXGxhbWJkYV97XFxiZXRhXFxnZyBldn0iLDFdLFsyLDMsIlxcbGFtYmRhX3tcXGJldGFcXGdnIGV2fVxcdGltZXMgaWRfe1xcT21lZ2FeWH0iLDFdLFsyLDUsIlxcYmV0YSIsMl0sWzUsNCwiZXYiLDJdLFsxLDYsIlxcT21lZ2Fee1xcT21lZ2FeZn0iXSxbMCw3LCJmIiwyXSxbNyw2LCJcXGxhbWJkYV97XFxiZXRhXFxnZyBldn0iLDJdLFs5LDEwLCJldiIsMl0sWzgsOSwiXFxPbWVnYV57XFxPbWVnYV5mfVxcdGltZXMgaWQiXSxbOCwxMSwiaWRcXHRpbWVzIFxcT21lZ2FeZiJdLFsxMSwxMCwiZXYiXSxbMTIsOCwiXFxsYW1iZGFfe1xcYmV0YVxcZ2cgZXZ9XFx0aW1lcyBpZCIsMix7ImN1cnZlIjoyfV0sWzEyLDEzLCJpZFxcdGltZXNcXE9tZWdhXmYiLDFdLFsxMywxMSwiXFxsYW1iZGFfe1xcYmV0YVxcZ2cgZXZ9XFx0aW1lcyBpZCIsMV0sWzEzLDE0LCJcXGJldGEiLDFdLFsxNCwxMCwiZXYiXSxbMTIsMTUsIlxcYmV0YSIsMV0sWzE1LDE0LCJcXE9tZWdhXmZcXHRpbWVzIGlkIiwxXSxbMTYsMTAsImV2Il0sWzE1LDE2LCJpZFxcdGltZXMgZiIsMV0sWzEyLDE3LCJmXFx0aW1lcyBpZCIsMSx7ImN1cnZlIjotMn1dLFsxNywxNiwiXFxiZXRhIiwxXSxbMTcsMTgsIlxcbGFtYmRhX3tcXGJldGFcXGdnIGV2fVxcdGltZXMgaWQiLDFdLFsxOCwxMCwiZXYiLDFdXQ==
+-/
+def CartesianClosed.internalHom.unit [CartesianMonoidalCategory C] [BraidedCategory C] [CartesianClosed C] (X : C) :
+  𝟭 C ⟶ (internalHom.flip.obj X ⋙ opOp C).unop ⋙ (internalHom.flip.obj X) where
+    app Y :=
+      CartesianClosed.curry <| (β_ _ Y).hom ≫ ((exp.ev _).app _)
+    naturality {Y₁ Y₂} f := by
+      simp only [Functor.id_obj, Functor.comp_obj, Functor.unop_obj, Functor.flip_obj_obj, opOp_obj,
+        Functor.id_map, Functor.comp_map, Functor.unop_map, Functor.flip_obj_map, opOp_map,
+        Quiver.Hom.unop_op]
+      apply CartesianClosed.uncurry_injective
+      calc uncurry (f ≫ curry ((β_ ((internalHom.obj (Opposite.op Y₂)).obj X) Y₂).hom ≫
+          (exp.ev Y₂).app X))
+      _ = _ ◁ f ≫ uncurry (curry ((β_ ((internalHom.obj (Opposite.op Y₂)).obj X) Y₂).hom ≫
+          (exp.ev Y₂).app X)) := by
+        rw [CartesianClosed.uncurry_natural_left]
+      _ = _ ◁ f ≫ ((β_ ((internalHom.obj (Opposite.op Y₂)).obj X) _).hom ≫
+          (exp.ev Y₂).app X) := by rw [CartesianClosed.uncurry_curry]
+      _ = (β_ ((internalHom.obj (Opposite.op Y₂)).obj X) _).hom ≫ f ▷ _ ≫ (exp.ev Y₂).app X := by
+        simp
+      _ = (β_ ((internalHom.obj (Opposite.op Y₂)).obj X) Y₁).hom ≫
+          Y₁ ◁ (internalHom.map f.op).app X ≫ (exp.ev Y₁).app X := by
+        congr 1
+        dsimp [internalHom,pre]
+        sorry
+      _ = uncurry (curry ((β_ ((internalHom.obj (Opposite.op Y₁)).obj X) Y₁).hom ≫
+        (exp.ev Y₁).app X) ≫ (internalHom.map ((internalHom.map f.op).app X).op).app X) := by
+        sorry
+
 variable [HasFiniteLimits C]
-attribute [local instance] CartesianMonoidalCategory.ofHasFiniteProducts
 
-lemma fst_def {X Y : C} : CartesianMonoidalCategory.fst X Y = prod.fst := rfl
-
-lemma snd_def {X Y : C} : CartesianMonoidalCategory.snd X Y = prod.snd := rfl
-
-instance : SymmetricCategory C where
-  braiding X Y := prod.braiding X Y
-  braiding_naturality_right X {Y Z} f := by
-    apply Limits.prod.hom_ext
-    · rw [prod.braiding_hom,prod.braiding_hom,prod.comp_lift,← snd_def,
-        CartesianMonoidalCategory.whiskerLeft_snd,
-        prod.lift_fst,Category.assoc,← fst_def (X := Z),
-        CartesianMonoidalCategory.whiskerRight_fst,fst_def]
-      simp only [limit.lift_π_assoc, BinaryFan.mk_pt, pair_obj_left, BinaryFan.mk_fst]
-      rw [snd_def]
-    ·
-      sorry
-
-
-
-  braiding_naturality_left := _
-  hexagon_forward := _
-  hexagon_reverse := _
-  symmetry := _
 
 /-- the contravariant functor mapping objects `X` to "the object representing its subobjects",
   which is `X ⟹ 𝒞.Ω` -/
 @[simps!]
-noncomputable def Classifier.P (𝒞 : Classifier C) [HasFiniteLimits C] [CartesianClosed C] :
+def Classifier.P (𝒞 : Classifier C) [HasFiniteLimits C]
+  [CartesianMonoidalCategory C] [CartesianClosed C] :
     Cᵒᵖ ⥤ C := internalHom.flip.obj 𝒞.Ω
 
 @[simps!]
-noncomputable def Classifier.POp (𝒞 : Classifier C) [HasFiniteLimits C] [CartesianClosed C] :
-    C ⥤ Cᵒᵖ := (𝒞.P ⋙ opOp C).unop
+def Classifier.POp (𝒞 : Classifier C) [HasFiniteLimits C]
+    [CartesianMonoidalCategory C] [CartesianClosed C] : C ⥤ Cᵒᵖ :=
+  (𝒞.P ⋙ opOp C).unop
 
+def Classifier.P_unit (𝒞 : Classifier C) [HasFiniteLimits C]
+    [CartesianMonoidalCategory C] [CartesianClosed C] : 𝟭 C ⟶ 𝒞.POp ⋙ 𝒞.P where
+  app X :=
+    letI : BraidedCategory C := .ofCartesianMonoidalCategory
+    CartesianClosed.curry <| (β_ _ X).hom ≫ (exp.ev X).app 𝒞.Ω
+  naturality {X Y} f := sorry
 
-instance (𝒞 : Classifier C) [HasFiniteLimits C] [CartesianClosed C] : MonadicRightAdjoint (𝒞.P) :=
-  sorry
-
-noncomputable def Classifier.P_adjoint (𝒞 : Classifier C) [HasFiniteLimits C] [CartesianClosed C] :
+def Classifier.P_adjoint (𝒞 : Classifier C) [HasFiniteLimits C]
+    [CartesianMonoidalCategory C] [CartesianClosed C] :
     𝒞.POp ⊣ 𝒞.P where
-  unit.app X := MonoidalClosed.curry <|
-    (prod.braiding _ _).hom ≫ (exp.ev X).app 𝒞.Ω
-  unit.naturality {X Y} f := by
-    dsimp
+  unit := 𝒞.P_unit
+  --   letI : BraidedCategory C := _
+  -- unit.naturality {X Y} f := by
+  --   apply CartesianClosed.uncurry_injective
+  --   simp_rw [CartesianClosed.uncurry_natural_left,CartesianClosed.uncurry_curry]
 
 
-    sorry
+  --   sorry
   counit := sorry
   left_triangle_components := sorry
   right_triangle_components := sorry
 
+instance (𝒞 : Classifier C) [HasFiniteLimits C] [CartesianMonoidalCategory C] [CartesianClosed C] :
+    MonadicRightAdjoint (𝒞.P) where
+  L := 𝒞.POp
+  adj := 𝒞.P_adjoint
+  eqv := sorry
 
-end or
+end colimits
 
 
 
