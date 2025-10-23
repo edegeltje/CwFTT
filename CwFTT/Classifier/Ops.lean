@@ -2,7 +2,10 @@ import Mathlib.CategoryTheory.Topos.Classifier
 import Mathlib.CategoryTheory.Closed.Cartesian
 import Mathlib.CategoryTheory.Monoidal.OfHasFiniteProducts
 import Mathlib.CategoryTheory.Monad.Adjunction
+import Mathlib.CategoryTheory.Monad.Monadicity
 import CwFTT.Util.Pullback
+import CwFTT.Util.Cartesian
+import CwFTT.Util.CartesianPullback
 
 namespace CategoryTheory
 open Limits
@@ -117,82 +120,147 @@ lemma Classifier.and_assoc (𝒞 : Classifier C) [HasBinaryProducts C] {X : C} (
 end and
 
 section colimits
-open scoped MonoidalCategory CartesianMonoidalCategory
+open MonoidalCategory CartesianMonoidalCategory
 
-/--
-naturality is shown by uncurrying, and showing that the following diagram commutes:
-https://q.uiver.app/#q=WzAsMTksWzEsMCwiWCJdLFsxLDEsIlxcT21lZ2Fee1xcT21lZ2FeWH0iXSxbMiwwLCJYXFx0aW1lcyBcXE9tZWdhXlgiXSxbMiwxLCJcXE9tZWdhXntcXE9tZWdhXlh9XFx0aW1lcyBcXE9tZWdhXlgiXSxbMywxLCJcXE9tZWdhIl0sWzMsMCwiXFxPbWVnYV5YXFx0aW1lcyBYIl0sWzAsMiwiXFxPbWVnYV57XFxPbWVnYV5ZfSJdLFswLDEsIlkiXSxbMCw0LCJcXE9tZWdhXntcXE9tZWdhXlh9XFx0aW1lcyBcXE9tZWdhXlkiXSxbMCw1LCJcXE9tZWdhXntcXE9tZWdhXll9XFx0aW1lcyBcXE9tZWdhXlkiXSxbMiw2LCJcXE9tZWdhIl0sWzEsNCwiXFxPbWVnYV57XFxPbWVnYV5YfVxcdGltZXMgXFxPbWVnYV5YIl0sWzIsMiwiWFxcdGltZXNcXE9tZWdhXlkiXSxbMSwzLCJYXFx0aW1lc1xcT21lZ2FeWCJdLFsyLDQsIlxcT21lZ2FeWFxcdGltZXMgWCJdLFszLDMsIlxcT21lZ2FeWVxcdGltZXMgWCJdLFszLDQsIlxcT21lZ2FeWVxcdGltZXMgWSJdLFs0LDQsIllcXHRpbWVzXFxPbWVnYV5ZIl0sWzQsNSwiXFxPbWVnYV57XFxPbWVnYV5ZfVxcdGltZXMgXFxPbWVnYV5ZIl0sWzMsNCwiZXYiXSxbMCwxLCJcXGxhbWJkYV97XFxiZXRhXFxnZyBldn0iLDFdLFsyLDMsIlxcbGFtYmRhX3tcXGJldGFcXGdnIGV2fVxcdGltZXMgaWRfe1xcT21lZ2FeWH0iLDFdLFsyLDUsIlxcYmV0YSIsMl0sWzUsNCwiZXYiLDJdLFsxLDYsIlxcT21lZ2Fee1xcT21lZ2FeZn0iXSxbMCw3LCJmIiwyXSxbNyw2LCJcXGxhbWJkYV97XFxiZXRhXFxnZyBldn0iLDJdLFs5LDEwLCJldiIsMl0sWzgsOSwiXFxPbWVnYV57XFxPbWVnYV5mfVxcdGltZXMgaWQiXSxbOCwxMSwiaWRcXHRpbWVzIFxcT21lZ2FeZiJdLFsxMSwxMCwiZXYiXSxbMTIsOCwiXFxsYW1iZGFfe1xcYmV0YVxcZ2cgZXZ9XFx0aW1lcyBpZCIsMix7ImN1cnZlIjoyfV0sWzEyLDEzLCJpZFxcdGltZXNcXE9tZWdhXmYiLDFdLFsxMywxMSwiXFxsYW1iZGFfe1xcYmV0YVxcZ2cgZXZ9XFx0aW1lcyBpZCIsMV0sWzEzLDE0LCJcXGJldGEiLDFdLFsxNCwxMCwiZXYiXSxbMTIsMTUsIlxcYmV0YSIsMV0sWzE1LDE0LCJcXE9tZWdhXmZcXHRpbWVzIGlkIiwxXSxbMTYsMTAsImV2Il0sWzE1LDE2LCJpZFxcdGltZXMgZiIsMV0sWzEyLDE3LCJmXFx0aW1lcyBpZCIsMSx7ImN1cnZlIjotMn1dLFsxNywxNiwiXFxiZXRhIiwxXSxbMTcsMTgsIlxcbGFtYmRhX3tcXGJldGFcXGdnIGV2fVxcdGltZXMgaWQiLDFdLFsxOCwxMCwiZXYiLDFdXQ==
--/
-def CartesianClosed.internalHom.unit [CartesianMonoidalCategory C] [BraidedCategory C] [CartesianClosed C] (X : C) :
-  𝟭 C ⟶ (internalHom.flip.obj X ⋙ opOp C).unop ⋙ (internalHom.flip.obj X) where
-    app Y :=
-      CartesianClosed.curry <| (β_ _ Y).hom ≫ ((exp.ev _).app _)
-    naturality {Y₁ Y₂} f := by
-      simp only [Functor.id_obj, Functor.comp_obj, Functor.unop_obj, Functor.flip_obj_obj, opOp_obj,
-        Functor.id_map, Functor.comp_map, Functor.unop_map, Functor.flip_obj_map, opOp_map,
-        Quiver.Hom.unop_op]
-      apply CartesianClosed.uncurry_injective
-      calc uncurry (f ≫ curry ((β_ ((internalHom.obj (Opposite.op Y₂)).obj X) Y₂).hom ≫
-          (exp.ev Y₂).app X))
-      _ = _ ◁ f ≫ uncurry (curry ((β_ ((internalHom.obj (Opposite.op Y₂)).obj X) Y₂).hom ≫
-          (exp.ev Y₂).app X)) := by
-        rw [CartesianClosed.uncurry_natural_left]
-      _ = _ ◁ f ≫ ((β_ ((internalHom.obj (Opposite.op Y₂)).obj X) _).hom ≫
-          (exp.ev Y₂).app X) := by rw [CartesianClosed.uncurry_curry]
-      _ = (β_ ((internalHom.obj (Opposite.op Y₂)).obj X) _).hom ≫ f ▷ _ ≫ (exp.ev Y₂).app X := by
-        simp
-      _ = (β_ ((internalHom.obj (Opposite.op Y₂)).obj X) Y₁).hom ≫
-          Y₁ ◁ (internalHom.map f.op).app X ≫ (exp.ev Y₁).app X := by
-        congr 1
-        dsimp [internalHom,pre]
-        sorry
-      _ = uncurry (curry ((β_ ((internalHom.obj (Opposite.op Y₁)).obj X) Y₁).hom ≫
-        (exp.ev Y₁).app X) ≫ (internalHom.map ((internalHom.map f.op).app X).op).app X) := by
-        sorry
 
 variable [HasFiniteLimits C]
 
+instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C] :
+    (internalHom.flip.obj 𝒞.Ω).Faithful where
+  map_injective {Y X} f g heq := by
+    simp only [Functor.flip_obj_obj, Functor.flip_obj_map] at heq
+    rw [← Quiver.Hom.op_unop f,← Quiver.Hom.op_unop g] at heq
+    rw [internalHom.map_app_eq,internalHom.map_app_eq] at heq
+    apply CartesianClosed.curry_injective at heq
+    simp only [Opposite.op_unop, Functor.id_obj] at heq
+    let singleton : Y.unop ⟶ (internalHom.obj Y).obj 𝒞.Ω :=
+      CartesianClosed.curry (𝒞.χ (lift (𝟙 _) (𝟙 _)))
 
-/-- the contravariant functor mapping objects `X` to "the object representing its subobjects",
-  which is `X ⟹ 𝒞.Ω` -/
-@[simps!]
-def Classifier.P (𝒞 : Classifier C) [HasFiniteLimits C]
-  [CartesianMonoidalCategory C] [CartesianClosed C] :
-    Cᵒᵖ ⥤ C := internalHom.flip.obj 𝒞.Ω
+    have (f' : X.unop ⟶ Y.unop) :
+        _ ◁ singleton ≫ f' ▷ _ ≫ (exp.ev Y.unop).app 𝒞.Ω =
+          𝒞.χ (lift (𝟙 _) (f')) := by
+      rw [whisker_exchange_assoc]
+      unfold singleton
+      rw [← CartesianClosed.uncurry_eq,CartesianClosed.uncurry_curry]
+      apply 𝒞.uniq _ (χ₀' := f' ≫ _)
+      apply IsPullback.paste_vert _ (𝒞.isPullback _)
+      refine IsPullback.of_isLimit' (by simp) (PullbackCone.IsLimit.mk _
+        (fun s => s.fst ≫ fst _ _)
+        (by
+          intro s
+          apply CartesianMonoidalCategory.hom_ext
+          · simp
+          simp only [comp_lift, Category.comp_id, Category.assoc, lift_snd]
+          rw [← whiskerRight_fst,← whiskerRight_snd f', s.condition_assoc, s.condition_assoc,
+            lift_fst,lift_snd])
+          (by
+            intro s
+            simp only [Category.assoc]
+            rw [← whiskerRight_fst,s.condition_assoc,lift_fst,Category.comp_id])
+          (by
+            intro s m hm₁ _
+            simp only [comp_lift, Category.comp_id] at hm₁ ⊢
+            rw [← hm₁]
+            simp only [lift_fst]))
 
-@[simps!]
-def Classifier.POp (𝒞 : Classifier C) [HasFiniteLimits C]
-    [CartesianMonoidalCategory C] [CartesianClosed C] : C ⥤ Cᵒᵖ :=
-  (𝒞.P ⋙ opOp C).unop
-
-def Classifier.P_unit (𝒞 : Classifier C) [HasFiniteLimits C]
-    [CartesianMonoidalCategory C] [CartesianClosed C] : 𝟭 C ⟶ 𝒞.POp ⋙ 𝒞.P where
-  app X :=
-    letI : BraidedCategory C := .ofCartesianMonoidalCategory
-    CartesianClosed.curry <| (β_ _ X).hom ≫ (exp.ev X).app 𝒞.Ω
-  naturality {X Y} f := sorry
-
-def Classifier.P_adjoint (𝒞 : Classifier C) [HasFiniteLimits C]
-    [CartesianMonoidalCategory C] [CartesianClosed C] :
-    𝒞.POp ⊣ 𝒞.P where
-  unit := 𝒞.P_unit
-  --   letI : BraidedCategory C := _
-  -- unit.naturality {X Y} f := by
-  --   apply CartesianClosed.uncurry_injective
-  --   simp_rw [CartesianClosed.uncurry_natural_left,CartesianClosed.uncurry_curry]
+    have h : 𝒞.χ (lift (𝟙 _) f.unop) = 𝒞.χ (lift (𝟙 _) g.unop) := by
+      rw [← this,← this,heq]
+    clear heq this singleton
+    have hf := 𝒞.isPullback (lift (𝟙 _) f.unop)
+    have hg := 𝒞.isPullback (lift (𝟙 _) g.unop)
+    rw [← h] at hg
+    obtain ⟨hl,hr⟩ :=
+      CartesianMonoidalCategory.hom_ext_iff.mp (IsPullback.isoIsPullback_hom_fst _ _ hf hg)
+    simp only [comp_lift, Category.comp_id, lift_fst] at hl
+    rw [hl] at hr
+    simpa using congr($(hr).op).symm
 
 
-  --   sorry
-  counit := sorry
-  left_triangle_components := sorry
-  right_triangle_components := sorry
+instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C] :
+    (internalHom.flip.obj 𝒞.Ω).ReflectsIsomorphisms :=
+    letI : HasClassifier C := ⟨⟨𝒞⟩⟩
+  inferInstance
 
-instance (𝒞 : Classifier C) [HasFiniteLimits C] [CartesianMonoidalCategory C] [CartesianClosed C] :
-    MonadicRightAdjoint (𝒞.P) where
-  L := 𝒞.POp
-  adj := 𝒞.P_adjoint
-  eqv := sorry
 
+
+noncomputable def Classifier.exists (𝒞 : Classifier C) [CartesianMonoidalCategory C]
+    [CartesianClosed C]
+    {X Y : C} (f : X ⟶ Y) [Mono f] :
+    (internalHom.obj (Opposite.op X)).obj (𝒞.Ω) ⟶ (internalHom.obj (Opposite.op Y)).obj (𝒞.Ω) :=
+  CartesianClosed.curry (𝒞.χ (
+    (pullback.fst (((exp.ev X).app 𝒞.Ω)) 𝒞.truth) ≫ f ▷ (internalHom.obj (Opposite.op X)).obj 𝒞.Ω))
+
+lemma Classifier.uncurry_exists_comp_tensorRight (𝒞 : Classifier C) [CartesianMonoidalCategory C]
+    [CartesianClosed C]
+    {X Y : C} (f : X ⟶ Y) [Mono f] : (f ▷ _) ≫ CartesianClosed.uncurry (𝒞.exists f) =
+    (exp.ev X).app 𝒞.Ω := by
+  rw [Classifier.exists,CartesianClosed.uncurry_curry]
+  have := (𝒞.isPullback (pullback.fst ((exp.ev X).app 𝒞.Ω) 𝒞.truth ≫ f ▷ _)).shift_mono_top
+  exact 𝒞.hom_ext _ _ _ _ this (IsPullback.of_hasPullback _ _)
+
+lemma beck_condition (𝒞 : Classifier C) [CartesianMonoidalCategory C]
+    [CartesianClosed C]
+    {X Y Z T : C} {f : X ⟶ Y} {g : X ⟶ Z} [Mono g] {h : Y ⟶ T} [Mono h]
+    {k : Z ⟶ T} (hf : IsPullback f g h k) :
+    (internalHom.map f.op).app 𝒞.Ω ≫ 𝒞.exists g =
+      (𝒞.exists h) ≫ (internalHom.map k.op).app 𝒞.Ω := by
+  have h_exists {X' Z' : C } (g' : X' ⟶ Z') [Mono g'] :=
+    𝒞.isPullback (pullback.fst ((exp.ev X').app 𝒞.Ω) 𝒞.truth ≫ g' ▷ (internalHom.obj _).obj _)
+  have clw' := (IsPullback.id_vert g).tensor (IsPullback.id_horiz ((internalHom.map f.op).app 𝒞.Ω))
+  simp only [id_tensorHom, tensorHom_id] at clw' -- cclw'
+  have clw := ((IsPullback.of_hasPullback
+    _ (pullback.fst (((exp.ev X).app 𝒞.Ω)) 𝒞.truth)).paste_horiz clw').paste_vert (h_exists g)
+  have clw₂ := clw.shift_mono_top
+  rw [← whisker_exchange_assoc g ((internalHom.map f.op).app 𝒞.Ω)] at clw₂
+  rw [← CartesianClosed.uncurry_curry (𝒞.χ _),← Classifier.exists.eq_1,
+    Classifier.uncurry_exists_comp_tensorRight,← CartesianClosed.uncurry_eq,
+    uncurry_internalHom_map_app] at clw₂
+  let lft : pullback (X◁ (internalHom.map f.op).app _) (pullback.fst ((exp.ev X).app 𝒞.Ω) 𝒞.truth) ⟶
+      (pullback ((exp.ev Y).app 𝒞.Ω) 𝒞.truth) := by
+    refine pullback.lift ?_ ?_ ?_
+    · refine pullback.fst _ _ ≫ (f ▷ (internalHom.obj (Opposite.op Y)).obj 𝒞.Ω)
+    · exact 𝒞.χ₀ _
+    · simp
+      rw [← uncurry_internalHom_map_app,CartesianClosed.uncurry_eq]
+      simp only
+      rw [pullback.condition_assoc,pullback.condition,← Category.assoc]
+      congr
+      exact Subsingleton.elim _ _
+  have small : IsPullback (pullback.fst _ _) (lft)
+      (f ▷ ((internalHom.obj (Opposite.op Y)).obj 𝒞.Ω))
+      (pullback.fst _ _) := by
+      apply IsPullback.of_bot _ _ (h_exists h).shift_mono_top
+      · rw [Subsingleton.elim (lft ≫ 𝒞.χ₀ _) (_ ≫ 𝒞.χ₀ _),Classifier.comp_χ_comp,
+          Classifier.χ_pullback_fst]
+        exact clw₂
+      · unfold lft
+        rw [pullback.lift_fst]
+  have cclw' := hf.flip.tensor (IsPullback.id_vert
+    (𝟙 (internalHom.obj (Opposite.op Y)).obj 𝒞.Ω))
+  simp only [Pi.id_apply, tensorHom_id] at cclw'
+  have cclw := (small.paste_horiz cclw').paste_vert (h_exists h)
+  rw [Subsingleton.elim (_ ≫ 𝒞.χ₀ _) (𝒞.χ₀ _)] at cclw clw₂
+  clear small lft cclw' clw₂ clw' h_exists -- cleanup
+  apply CartesianClosed.uncurry_injective
+  rw [CartesianClosed.uncurry_natural_left,CartesianClosed.uncurry_natural_left]
+  simp only
+  rw [uncurry_internalHom_map_app,Classifier.exists,CartesianClosed.uncurry_curry]
+  rw [whisker_exchange_assoc,← CartesianClosed.uncurry_eq,
+    Classifier.exists,CartesianClosed.uncurry_curry]
+  exact Classifier.hom_ext _ _ _ _ _ clw cclw
+
+instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C] :
+    Monad.PreservesColimitOfIsReflexivePair (internalHom.flip.obj 𝒞.Ω) where
+  out {A B} f g hfg := sorry
+
+-- instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C] :
+--     Monad.PreservesColimitOfIsSplitPair (internalHom.flip.obj 𝒞.Ω) := sorry
+
+instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C] :
+    MonadicRightAdjoint (internalHom.flip.obj 𝒞.Ω) :=
+  letI inst := BraidedCategory.ofCartesianMonoidalCategory
+  CategoryTheory.Monad.monadicOfHasPreservesReflexiveCoequalizersOfReflectsIsomorphisms
+    (@CartesianClosed.internalHom.flip_adjoint C _ _ inst _ 𝒞.Ω)
 end colimits
 
 

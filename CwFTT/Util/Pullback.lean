@@ -135,3 +135,26 @@ lemma CategoryTheory.IsPullback.mono_fst {X₁ X₂ X₃ X₄ : C} {f₁ : X₁ 
 lemma CategoryTheory.IsPullback.mono_snd {X₁ X₂ X₃ X₄ : C} {f₁ : X₁ ⟶ X₂} {f₂ : X₁ ⟶ X₃}
     {f₃ : X₂ ⟶ X₄} {f₄ : X₃ ⟶ X₄} (hf : IsPullback f₁ f₂ f₃ f₄) [Mono f₃] : Mono f₂ :=
   hf.flip.mono_fst
+
+lemma CategoryTheory.IsPullback.shift_mono_left {X₁ X₂ X₃ X₃' X₄ : C} {f₁ : X₁ ⟶ X₂} {f₂ : X₁ ⟶ X₃}
+    (f₂' : X₃ ⟶ X₃') [Mono f₂'] {f₃ : X₂ ⟶ X₄} {f₄ : X₃' ⟶ X₄}
+    (hf : IsPullback f₁ (f₂ ≫ f₂') f₃ f₄) :
+    IsPullback f₁ f₂ f₃ (f₂' ≫ f₄) := by
+  refine { toCommSq.w := ?_, isLimit' := ⟨?_⟩ }
+  · simpa using hf.w
+  · refine PullbackCone.IsLimit.mk _ (fun s => hf.lift s.fst (s.snd ≫ f₂') ?_) (by simp) ?_ ?_
+    · rw [s.condition,Category.assoc]
+    · intro s
+      simp only
+      apply Mono.right_cancellation (f := f₂')
+      rw [Category.assoc, hf.lift_snd]
+    · intro s m hm₁ hm₂
+      apply hf.hom_ext
+      · rw [hm₁,hf.lift_fst]
+      · rw [reassoc_of% hm₂,hf.lift_snd]
+
+lemma CategoryTheory.IsPullback.shift_mono_top {X₁ X₂ X₂' X₃ X₄ : C} {f₁ : X₁ ⟶ X₂}
+    (f₁' : X₂ ⟶ X₂') [Mono f₁'] {f₂ : X₁ ⟶ X₃}
+    {f₃ : X₂' ⟶ X₄} {f₄ : X₃ ⟶ X₄} (hf : IsPullback (f₁ ≫ f₁') f₂ f₃ f₄) :
+    IsPullback f₁ f₂ (f₁' ≫ f₃) f₄ := by
+  exact hf.flip.shift_mono_left.flip

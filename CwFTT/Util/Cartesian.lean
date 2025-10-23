@@ -18,6 +18,20 @@ lemma uncurry_internalHom_map_app (X Y Z : C) (f : Y ⟶ Z) :
       (exp.ev _).app X := by
   exact uncurry_pre _ _
 
+instance (X Y Z : C) (f : X ⟶ Y) [Mono f] : Mono (f ▷ Z) where
+  right_cancellation {Z'} g h heq := by
+    refine hom_ext g h ?_ ?_
+    · apply Mono.right_cancellation (f := f)
+      simp only [Category.assoc,← whiskerRight_fst,reassoc_of% heq]
+    · simpa using congr($heq ≫ CartesianMonoidalCategory.snd _ _)
+
+instance (X Y Z : C) (f : X ⟶ Y) [Mono f]: Mono (Z ◁ f) where
+  right_cancellation {Z'} g h heq := by
+    refine hom_ext g h ?_ ?_
+    · simpa using congr($heq ≫ CartesianMonoidalCategory.fst _ _)
+    · apply Mono.right_cancellation (f := f)
+      simp only [Category.assoc,← whiskerLeft_snd,reassoc_of% heq]
+
 -- there is a one-line proof which (ab)uses defeq, but this seems better.
 -- @[simp]
 lemma internalHom.map_app_eq (X Y Z : C) (f : Y ⟶ Z) :
