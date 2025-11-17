@@ -5,9 +5,12 @@ open CategoryTheory Limits
 variable {C : Type*} [Category C]
 
 /-
-The below lemma is relevant to Topos theory, as in the context of a topos, the below helps define the intersection morphism ⊓ : Ω ⨯ Ω ⟶ Ω which induces and characterizes all intersections of subobjects (which are pullbacks)
-The morphism is defined as the classifier of ⟨truth,truth⟩ : (Ω₀ ⨯ Ω₀) ⟶ (Ω ⨯ Ω).
-In order to show that indeed for subobjects `f,g` of `X`, we have that χ (f ⊓ g) = ⊓ ≫ ⟨χ f,χ g⟩, we need to show the large square in the following diagram is a pullback:
+The below lemma is relevant to Topos theory, as in the context of a topos, the below helps define
+the intersection morphism ⊓ : Ω ⨯ Ω ⟶ Ω which induces and characterizes all intersections of
+subobjects (which are pullbacks) The morphism is defined as the classifier of
+`⟨truth,truth⟩ : (Ω₀ ⨯ Ω₀) ⟶ (Ω ⨯ Ω)`.
+In order to show that indeed for subobjects `f,g` of `X`, we have that `χ (f ⊓ g) = ⊓ ≫ ⟨χ f,χ g⟩`,
+we need to show the large square in the following diagram is a pullback:
  (f ⊓ g)  →    Z
 
     ↓          ↓
@@ -158,3 +161,41 @@ lemma CategoryTheory.IsPullback.shift_mono_top {X₁ X₂ X₂' X₃ X₄ : C} {
     {f₃ : X₂' ⟶ X₄} {f₄ : X₃ ⟶ X₄} (hf : IsPullback (f₁ ≫ f₁') f₂ f₃ f₄) :
     IsPullback f₁ f₂ (f₁' ≫ f₃) f₄ := by
   exact hf.flip.shift_mono_left.flip
+
+/--
+If all small squares but the top left are pullback squares, the top left square commutes,
+and the full square is a pullback, then the top left square is a pullback too.
+Variables are named according to the following diagram:
+```
+X₁ -f₁→ X₂ -f₂→ X₃
+| hf_tl | hf_tr |
+f₃      f₄      f₅
+↓       ↓       ↓
+X₄ -f₆→ X₅ -f₇→ X₆
+| hf_bl | hf_br |
+f₈      f₉      f₁₀
+↓       ↓       ↓
+X₇-f₁₁→ X₈-f₁₂→ X₉
+```
+-/
+lemma CategoryTheory.IsPullback.of_bot_right {X₁ X₂ X₃ X₄ X₅ X₆ X₇ X₈ X₉ : C}
+    {f₁ : X₁ ⟶ X₂} {f₂ : X₂ ⟶ X₃}
+    {f₃ : X₁ ⟶ X₄} {f₄ : X₂ ⟶ X₅} {f₅ : X₃ ⟶ X₆}
+    {f₆ : X₄ ⟶ X₅} {f₇ : X₅ ⟶ X₆}
+    {f₈ : X₄ ⟶ X₇} {f₉ : X₅ ⟶ X₈} {f₁₀ : X₆ ⟶ X₉}
+    {f₁₁ : X₇ ⟶ X₈} {f₁₂ : X₈ ⟶ X₉}
+    (hf : IsPullback (f₁ ≫ f₂) (f₃ ≫ f₈) (f₅ ≫ f₁₀) (f₁₁ ≫ f₁₂))
+    (hf_tl : CommSq f₁ f₃ f₄ f₆) (hf_tr : IsPullback f₂ f₄ f₅ f₇)
+    (hf_bl : IsPullback f₆ f₈ f₉ f₁₁) (hf_br : IsPullback f₇ f₉ f₁₀ f₁₂) :
+    IsPullback f₁ f₃ f₄ f₆ :=
+    (hf.of_bot (hf_tl.horiz_comp hf_tr.toCommSq).w (hf_bl.paste_horiz hf_br)).of_right
+    hf_tl.w hf_tr
+
+lemma CategoryTheory.IsPullback.of_comp_of_mono {X₁ X₂ X₃ X₄ Z : C} {f₁ : X₁ ⟶ X₂}
+    {f₂ : X₁ ⟶ X₃} {f₃ : X₂ ⟶ X₄} {f₄ : X₃ ⟶ X₄}
+    (g : X₄ ⟶ Z) [Mono g]
+    (hf : IsPullback f₁ f₂ (f₃ ≫ g) (f₄ ≫ g)) : IsPullback f₁ f₂ f₃ f₄ := by
+  have hpb: IsPullback (f₁ ≫ 𝟙 _) (f₂ ≫ 𝟙 _) (f₃ ≫ g) (f₄ ≫ g) := by
+    convert hf <;> simp
+  have hf' : CommSq f₁ f₂ f₃ f₄ := ⟨Mono.right_cancellation _ _ (by simpa using hf.w)⟩
+  exact hpb.of_bot_right hf' (.id_horiz f₃) (.id_vert f₄) (.of_horiz_isIso_mono (by simp))

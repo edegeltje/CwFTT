@@ -184,23 +184,70 @@ def Sheaf.classifier (J : GrothendieckTopology C) : Classifier (Sheaf J (Type (m
     (Sheaf.classifier_isPullback)
     (Sheaf.χ_unique)
 
+instance (J : GrothendieckTopology C) : HasClassifier (Sheaf J (Type (max u v))) where
+  exists_classifier := ⟨Sheaf.classifier J⟩
+
 end
 
 section
+variable (C) in
+def Functor.Sieves : Cᵒᵖ ⥤ Type (max u v) where
+  obj X := Sieve X.unop
+  map f := fun s => s.pullback f.unop
 
+lemma GrothendieckTopology.IsClosed.of_bot {X : C} {s : Sieve X} :
+    (⊥ : GrothendieckTopology C).IsClosed s := by
+  rw [isClosed_iff_close_eq_self, Sieve.ext_iff]
+  intros
+  rw [close_apply, Sieve.mem_iff_pullback_eq_top]
+  exact Iff.rfl
+
+variable (C) in
+def Presheaf.Ω_iso : ((Sheaf.classifier (C := C) ⊥).ofEquivalence (sheafBotEquivalence _)).Ω ≅
+    Functor.Sieves C where
+  hom := {
+    app X := (·.val)
+  }
+  inv := {
+    app X := (⟨·,.of_bot⟩)
+  }
+
+variable (C) in
+def Presheaf.Ω₀_iso : ((Sheaf.classifier (C := C) ⊥).ofEquivalence (sheafBotEquivalence _)).Ω₀ ≅
+    (Functor.const Cᵒᵖ).obj PUnit := Iso.refl _
+
+variable (C) in
 @[simps!]
 def Presheaf.classifier : Classifier (Cᵒᵖ ⥤ Type (max u v)) :=
-  (Sheaf.classifier ⊥).ofEquivalence (sheafBotEquivalence (Type (max u v)))
+  ((Sheaf.classifier ⊥).ofEquivalence (sheafBotEquivalence (Type (max u v)))).ofIso
+    (Presheaf.Ω_iso C) (Presheaf.Ω₀_iso C) (fun X => { app Y := fun _ => .unit }) (rfl)
 
-#check Presheaf.classifier
--- example (J₁ J₂ : GrothendieckTopology C) (hle : J₁ ≤ J₂) : LTT (Sheaf.classifier J₁) where
---   locally := {
---     val := _
---   }
---   locally_true := sorry
---   locally_locally := sorry
---   locally_and := sorry
 
+def GrothendieckTopology.toLTT (J : GrothendieckTopology C) :
+    LTT (Presheaf.classifier C) where
+  locally := {
+    app X := J.close
+    naturality := by
+      dsimp [Presheaf.classifier,Functor.Sieves]
+      intros
+      ext s
+      simp only [types_comp_apply, close_apply, Sieve.pullback_apply, J.covers_iff,
+        Sieve.pullback_comp]
+  }
+  locally_true := by
+    ext X ⟨⟩
+    simp [Presheaf.classifier,Sheaf.classifier,Presheaf.Ω₀_iso,Presheaf.Ω_iso]
+    rw [close_eq_self_of_isClosed J fun ⦃Y⦄ f a ↦ _root_.trivial]
+  locally_locally := by
+    ext X s
+    dsimp only [Presheaf.classifier_Ω_obj] at s
+    dsimp only [Presheaf.classifier_Ω_obj, NatTrans.comp_app, types_comp_apply]
+    exact close_close J s
+  locally_and := by
+    apply Classifier.hom_ext
+
+    -- rw [𝒞.hom_ext_iff]
+    sorry
 
 end
 

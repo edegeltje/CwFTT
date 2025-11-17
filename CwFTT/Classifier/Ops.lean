@@ -3,9 +3,14 @@ import Mathlib.CategoryTheory.Closed.Cartesian
 import Mathlib.CategoryTheory.Monoidal.OfHasFiniteProducts
 import Mathlib.CategoryTheory.Monad.Adjunction
 import Mathlib.CategoryTheory.Monad.Monadicity
+import Mathlib.CategoryTheory.Limits.Preserves.Creates.Finite
+import Mathlib.CategoryTheory.MorphismProperty.Limits
+
 import CwFTT.Util.Pullback
 import CwFTT.Util.Cartesian
 import CwFTT.Util.CartesianPullback
+import CwFTT.Util.Cone
+
 
 namespace CategoryTheory
 open Limits
@@ -83,6 +88,7 @@ lemma Classifier.χ_pullback [HasBinaryProducts C] {𝒞 : Classifier C} {X₁ X
     (𝒞.isPullback (Limits.prod.map 𝒞.truth 𝒞.truth))
 
   apply Subsingleton.elim
+-- #synth CartesianMonoidalCategory (C ⥤ Type (max u v))
 
 lemma Classifier.and_comm_aux (𝒞 : Classifier C) [HasBinaryProduct 𝒞.Ω 𝒞.Ω] :
     (prod.braiding _ _).hom ≫ 𝒞.and = 𝒞.and := by
@@ -198,7 +204,7 @@ lemma Classifier.uncurry_exists_comp_tensorRight (𝒞 : Classifier C) [Cartesia
   have := (𝒞.isPullback (pullback.fst ((exp.ev X).app 𝒞.Ω) 𝒞.truth ≫ f ▷ _)).shift_mono_top
   exact 𝒞.hom_ext _ _ _ _ this (IsPullback.of_hasPullback _ _)
 
-lemma beck_condition (𝒞 : Classifier C) [CartesianMonoidalCategory C]
+lemma Classifier.beck_condition (𝒞 : Classifier C) [CartesianMonoidalCategory C]
     [CartesianClosed C]
     {X Y Z T : C} {f : X ⟶ Y} {g : X ⟶ Z} [Mono g] {h : Y ⟶ T} [Mono h]
     {k : Z ⟶ T} (hf : IsPullback f g h k) :
@@ -249,19 +255,222 @@ lemma beck_condition (𝒞 : Classifier C) [CartesianMonoidalCategory C]
     Classifier.exists,CartesianClosed.uncurry_curry]
   exact Classifier.hom_ext _ _ _ _ _ clw cclw
 
+lemma Classifier.exists_comp_internalHom_eq (𝒞 : Classifier C) [CartesianMonoidalCategory C]
+    [CartesianClosed C]
+    {X Y : C} (f : X ⟶ Y) [Mono f] : 𝒞.exists f ≫ (internalHom.map f.op).app 𝒞.Ω = 𝟙 _ := by
+  have := 𝒞.beck_condition (IsPullback.of_vert_isIso_mono (show
+    CommSq (𝟙 X) (𝟙 X) f f from by simp))
+  simp only [op_id, Functor.map_id, NatTrans.id_app, Category.id_comp] at this
+  rw [Classifier.exists] at this
+  simp only [Functor.comp_obj, curriedTensor_obj_obj, Functor.id_obj, id_whiskerRight] at this
+  apply CartesianClosed.uncurry_injective
+  apply congrArg (CartesianClosed.uncurry) at this
+  trans (exp.ev _).app _
+  · simp only [CartesianClosed.uncurry_curry] at this
+    rw [← this]
+    trans 𝒞.χ (pullback.fst ((exp.ev X).app 𝒞.Ω) 𝒞.truth)
+    · congr
+      erw [@Category.comp_id _ _]
+    · rw [𝒞.χ_pullback_fst]
+  rw [CartesianClosed.uncurry_eq]
+  simp
+
+omit [HasFiniteLimits C] in
+lemma IsReflexivePair.epi_left {X Y : C} {f g : X ⟶ Y} (h : IsReflexivePair f g) :
+    Epi f where
+  left_cancellation {Z} h₁ h₂ heq := by
+    simpa [reassoc_of% h.common_section.choose_spec.left] using
+      congr(h.common_section.choose ≫ $heq)
+
+omit [HasFiniteLimits C] in
+lemma IsReflexivePair.epi_right {X Y : C} {f g : X ⟶ Y} (h : IsReflexivePair f g) :
+    Epi g := h.swap.epi_left
+
+
 instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C] :
     Monad.PreservesColimitOfIsReflexivePair (internalHom.flip.obj 𝒞.Ω) where
-  out {A B} f g hfg := sorry
-
--- instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C] :
---     Monad.PreservesColimitOfIsSplitPair (internalHom.flip.obj 𝒞.Ω) := sorry
+  out {Z Y} g h hd' := {
+    preserves {c} hc := by
+      change Cofork g h at c
+      -- let d : Y ⟶ Z := hfg.common_section.choose
+      have hd := hd'.common_section.choose_spec
+      generalize hd'.common_section.choose = d at *
+      have := hd'.epi_left
+      have := hd'.epi_right
+      have hpushout : IsPushout h g (c.π) (c.π) := by
+        refine ⟨⟨(c.condition.symm)⟩,⟨?_⟩⟩
+        refine PushoutCocone.IsColimit.mk _ (fun c'=> Cofork.IsColimit.desc hc c'.inl ?_) ?_ ?_ ?_
+        · rw [c'.condition,← Category.id_comp c'.inl]
+          simp only [← hd.right, Category.assoc, c'.condition,
+            reassoc_of% hd.left]
+        · intro c'
+          simp only [Functor.const_obj_obj, Cofork.IsColimit.π_desc']
+        · intro c'
+          apply this.left_cancellation
+          simp only [Functor.const_obj_obj, Cofork.IsColimit.π_desc']
+          rw [← Category.id_comp c'.inl]
+          simp only [← hd.right, Category.assoc, c'.condition,
+            reassoc_of% hd.left]
+        · intro c' m hm₁ hm₂
+          simp only [Functor.const_obj_obj]
+          apply Cofork.IsColimit.hom_ext hc
+          rw [hm₁,Cofork.IsColimit.π_desc']
+      have hpullback := hpushout.unop
+      clear hd' -- maybe not, could be useful later
+      have hpi : Mono c.π.unop := hpullback.mono_fst
+      have := 𝒞.beck_condition hpullback.flip
+      constructor
+      let isoFunc : parallelPair g h ⋙ (internalHom.flip.obj 𝒞.Ω) ≅
+        (parallelPair ((internalHom.map g).app 𝒞.Ω)
+          ((internalHom.map h).app 𝒞.Ω)) := by
+        refine parallelPair.ext (Iso.refl _) (Iso.refl _) ?_ ?_
+        · simp only [Functor.comp_obj, parallelPair_obj_zero, Functor.flip_obj_obj,
+            parallelPair_obj_one, Functor.comp_map, parallelPair_map_left, Functor.flip_obj_map,
+            Iso.refl_hom, Category.comp_id, Category.id_comp]
+        · rw [Functor.comp_map,parallelPair_map_right, parallelPair_map_right]
+          simp
+      refine Limits.IsColimit.precomposeHomEquiv isoFunc.symm _ ?_
+      refine Cofork.IsColimit.ofSplitting _ (𝒞.exists (c.π.unop)) ?_ (𝒞.exists g.unop) ?_ ?_
+      · unfold Cofork.π isoFunc
+        simpa using 𝒞.exists_comp_internalHom_eq c.π.unop
+      · apply Classifier.exists_comp_internalHom_eq
+      · unfold isoFunc Cofork.π
+        simpa using (𝒞.beck_condition hpullback).symm}
 
 instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C] :
     MonadicRightAdjoint (internalHom.flip.obj 𝒞.Ω) :=
   letI inst := BraidedCategory.ofCartesianMonoidalCategory
   CategoryTheory.Monad.monadicOfHasPreservesReflexiveCoequalizersOfReflectsIsomorphisms
     (@CartesianClosed.internalHom.flip_adjoint C _ _ inst _ 𝒞.Ω)
+
+noncomputable instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C] :
+    CreatesLimits (internalHom.flip.obj 𝒞.Ω) := monadicCreatesLimits (internalHom.flip.obj 𝒞.Ω)
+
+instance [HasClassifier C] [CartesianMonoidalCategory C] [CartesianClosed C] :
+    HasFiniteLimits Cᵒᵖ :=
+  hasFiniteLimits_of_hasLimitsLimits_of_createsFiniteLimits
+    (internalHom.flip.obj (Classifier.Ω (Classical.choice HasClassifier.exists_classifier)))
+
+instance [HasClassifier C] [CartesianMonoidalCategory C] [CartesianClosed C] :
+    HasFiniteColimits C where
+      out _ _ _ := hasColimitsOfShape_of_hasLimitsOfShape_op
+
+
 end colimits
+
+section falsity
+
+noncomputable def Classifier.falsity (𝒞 : Classifier C) [HasInitial C]
+    [CartesianMonoidalCategory C] [CartesianClosed C] : 𝒞.Ω₀ ⟶ 𝒞.Ω :=
+  letI : HasClassifier C := ⟨⟨𝒞⟩⟩
+  𝒞.χ ((initial.to 𝒞.Ω₀))
+
+lemma χ_to_eq_falsity (𝒞 : Classifier C) {I : C} (hI : IsInitial I)
+    [CartesianMonoidalCategory C] [CartesianClosed C] :
+    letI : HasInitial C := IsInitial.hasInitial hI
+    letI := initial_mono _ hI
+    @𝒞.χ _ _ _ (hI.to 𝒞.Ω₀) this = 𝒞.falsity := by
+  have : HasInitial C := IsInitial.hasInitial hI
+  have := initial_mono 𝒞.Ω₀ hI
+  refine 𝒞.hom_ext _ _ (𝒞.χ₀ _) _ ?_ (𝒞.isPullback (initial.to 𝒞.Ω₀))
+  rw [← initial.to_comp (hI.to 𝒞.Ω₀),← Category.id_comp 𝒞.truth]
+  have := strict_initial hI (initial.to I)
+  exact IsPullback.paste_horiz (.of_horiz_isIso_mono (by simp)) (𝒞.isPullback _)
+
+noncomputable def Classifier.not (𝒞 : Classifier C) [HasFiniteLimits C] [HasClassifier C]
+    [CartesianMonoidalCategory C] [CartesianClosed C] : 𝒞.Ω ⟶ 𝒞.Ω := 𝒞.χ (
+  equalizer.ι (𝟙 _) (𝒞.χ₀ _ ≫ 𝒞.falsity))
+
+-- lemma Classifier.not_not
+-- lemma Classifier.not_truth
+-- lemma Classifier.not_false
+-- somehow, express what taking the pullback of `χ ≫ not` is like
+
+end falsity
+
+section image
+variable [HasFiniteLimits C] [HasClassifier C] [CartesianMonoidalCategory C]
+  [CartesianClosed C]
+
+instance {X Y : C} (f : X ⟶ Y) : HasImage f where
+  exists_image := ⟨{
+    F := {
+      I := equalizer (pushout.inl f f) (pushout.inr f f)
+      m := equalizer.ι _ _
+      m_mono := equalizer.ι_mono
+      e := equalizer.lift f (pushout.condition)
+      fac := equalizer.lift_ι _ _
+    }
+    isImage := {
+      lift z := by
+        have : RegularMono z.m := regularMonoOfMono z.m
+        apply Fork.IsLimit.lift (this.isLimit) (equalizer.ι _ _)
+        have := congr(z.e ≫ $(this.w))
+        simp_rw [reassoc_of% z.fac] at this
+        rw [← pushout.inl_desc _ _ this,equalizer.condition_assoc,pushout.inr_desc]
+      lift_fac z := by
+        apply Fork.IsLimit.lift_ι
+
+    }
+  }⟩
+
+instance : HasImages C where
+  has_image _ := inferInstance
+
+/-
+TODO :
+Show that coequalizers are preserved under pullback
+For this, it suffices to show that Topoi are LCC
+For this, we need to show that the Over-categories are CC
+For this, we need to show that Topoi have *partial map* classifiers
+
+-/
+
+instance : IsRegularEpiCategory C where
+  regularEpiOfEpi {X Y} f _ := ⟨{
+    W := (pullback f f)
+    left := (pullback.fst f f)
+    right := (pullback.snd f f)
+    w := (pullback.condition)
+    isColimit := (by
+      sorry)
+  }⟩
+
+-- example {X Y : C} (f : X ⟶ Y) : Epi (factorThruImage f) := inferInstance
+
+-- instance : HasImageMaps C where
+--   has_image_map {f g} x := {
+--     has_image_map := ⟨{
+--       map := _
+--       map_ι := _
+--     }⟩
+--   }
+
+end image
+
+section or
+-- variable [HasFiniteLimits C] [HasClassifier C] [CartesianMonoidalCategory C]
+--   [CartesianClosed C] in
+-- #synth HasImages C
+
+-- noncomputable def Classifier.or_aux [HasFiniteLimits C] (𝒞 : Classifier C)
+--     [CartesianMonoidalCategory C] [CartesianClosed C] :
+--     letI : HasClassifier C := ⟨⟨𝒞⟩⟩
+--     pushout 𝒞.truth 𝒞.truth ⟶ (𝒞.Ω ⨯ 𝒞.Ω) :=
+--   letI : HasClassifier C := ⟨⟨𝒞⟩⟩
+--   pushout.desc (prod.lift (𝟙 _) (𝒞.χ₀ _ ≫ 𝒞.truth)) (prod.lift (𝒞.χ₀ _ ≫ 𝒞.truth) (𝟙 _)) (by
+--     apply Limits.prod.hom_ext <;> simp [Subsingleton.elim (𝒞.χ₀ _) (𝟙 _)])
+
+
+
+-- def Classifier.or [HasFiniteLimits C] (𝒞 : Classifier C) [CartesianMonoidalCategory C]
+--     [CartesianClosed C] : 𝒞.Ω ⨯ 𝒞.Ω ⟶ 𝒞.Ω :=
+--   letI : HasClassifier C := ⟨⟨𝒞⟩⟩
+--   𝒞.χ (Classifier.or_aux 𝒞)
+
+
+end or
+
 
 
 

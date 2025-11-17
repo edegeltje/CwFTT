@@ -56,7 +56,6 @@ instance {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
     {X Y : C} (m : X ⟶ Y) [Mono m] : Mono (j.closureEmbed m) :=
   mono_of_mono_fac (j.closureEmbed_closure_eq m)
 
-
 /--
 A monomorphism `m : X ⟶ Y` is `j`-dense when the closure of the subobject it represents is
 the entire subobject. Intuitively, it says that the property determining the subobject
@@ -156,7 +155,7 @@ lemma LTT.IsDense.of_isDense_comp_right {𝒞 : Classifier C} [HasFiniteLimits C
 
 /-- there is a unique map from -/
 noncomputable def LTT.closureLift {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
-    {X Y Z: C} (f : X ⟶ Y) [Mono f] (g : Y ⟶ Z) [Mono g] (hg : j.IsClosed g) :
+    {X Y Z : C} (f : X ⟶ Y) [Mono f] (g : Y ⟶ Z) [Mono g] (hg : j.IsClosed g) :
     j.closureObj (f ≫ g) ⟶ Y := by
   dsimp [LTT.closureObj]
   have := hg.isPullback
@@ -165,8 +164,7 @@ noncomputable def LTT.closureLift {𝒞 : Classifier C} [HasFiniteLimits C] (j :
   trans 𝒞.χ (pullback.fst (j.closure (f ≫ g) ≫ 𝒞.χ g ≫ j.locally) (𝒞.truth))
   · apply 𝒞.uniq
     exact IsPullback.of_hasPullback _ _
-  ·
-    sorry
+  · sorry
   -- pullback.lift (j.closure _) (𝒞.χ₀ _) (by
   --   suffices h : j.closure (f ≫ j.closureEmbed g ≫ j.closure g) ≫ j.χclosure g =
   --     𝒞.χ₀ (j.closureObj (f ≫ j.closureEmbed g ≫ j.closure g)) ≫ 𝒞.truth by
@@ -182,16 +180,17 @@ noncomputable def LTT.closureLift {𝒞 : Classifier C} [HasFiniteLimits C] (j :
 -- this map is given by `j.closure m₁ ≫ j.closureEmbed m₂`, such that
 -- `j.closure m₁ ≫ j.closureEmbed m₂ ≫ j.closure m₂ = j.closure m₁ ≫ m₂`
 
-lemma LTT.IsDense.of_isDense_comp_left {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
-    {X Y Z : C} {m₁ : X ⟶ Y} {m₂ : Y ⟶ Z} [Mono m₁] [Mono m₂] (hm : j.IsDense (m₁ ≫ m₂)) :
-    j.IsDense m₂ := by
-  rw [j.isDense_iff] at ⊢
-  have := hm.closure_isIso
-  apply 𝒞.uniq
-  change IsPullback (𝟙 Z) (j.closureEmbed m₁ ≫ j.closure m₁ ≫ j.closureEmbed m₂ ≫ j.closure m₂ ≫ 𝒞.χ₀ _) (j.χclosure m₂) _
-  rw [← Category.id_comp (j.χclosure m₂)]
-  refine IsPullback.paste_vert ?_ (j.closure_isPullback m₂)
-
+-- lemma LTT.IsDense.of_isDense_comp_left {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
+--     {X Y Z : C} {m₁ : X ⟶ Y} {m₂ : Y ⟶ Z} [Mono m₁] [Mono m₂] (hm : j.IsDense (m₁ ≫ m₂)) :
+--     j.IsDense m₂ := by
+--   rw [j.isDense_iff] at ⊢
+--   have := hm.closure_isIso
+--   apply 𝒞.uniq
+--   change IsPullback (𝟙 X) (j.closureEmbed m₁ ≫ j.closure m₁ ≫ j.closureEmbed m₂ ≫
+--     j.closure m₂ ≫ 𝒞.χ₀ _) (j.χclosure m₂) _
+--   rw [← Category.id_comp (j.χclosure m₂)]
+--   refine IsPullback.paste_vert ?_ (j.closure_isPullback m₂)
+--   sorry
   --rw [← j.χclosure]
   -- rw [← Category.id_comp (j.locally)]
   -- refine IsPullback.paste_vert
@@ -238,9 +237,9 @@ lemma LTT.IsDense.of_isDense_comp_left {𝒞 : Classifier C} [HasFiniteLimits C]
     {X Y Z : C} {m₁ : X ⟶ Y} {m₂ : Y ⟶ Z} [Mono m₁] [Mono m₂] (hm : j.IsDense (m₁ ≫ m₂)) :
     j.IsDense m₂ := by
   rw [j.isDense_iff] at hm ⊢
-
-  rw [← hm, 𝒞.χ_id, 𝒞.χ_id,
-    reassoc_of% Subsingleton.elim (m₂ ≫ 𝒞.χ₀ _) (𝒞.χ₀ _)]
+  sorry
+  -- rw [← hm, 𝒞.χ_id, 𝒞.χ_id,
+  --   reassoc_of% Subsingleton.elim (m₂ ≫ 𝒞.χ₀ _) (𝒞.χ₀ _)]
 
 
 /--
