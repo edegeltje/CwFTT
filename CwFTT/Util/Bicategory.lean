@@ -170,23 +170,14 @@ def comp {H : B ⥤ᵖ B₂} (α : F ⟶ G) (β : G ⟶ H) : F ⟶ H where
       Iso.hom_inv_id_assoc,← comp_whiskerRight_assoc _ ((α.app₂ (f ≫ g)).inv) (β.app X₃),
       α.associativity_symm]
     simp only [comp_whiskerRight, whisker_assoc, Category.assoc, pentagon_inv_assoc]
+    simp_rw [associator_naturality_left_assoc, associator_inv_naturality_right_assoc,
+      pentagon_inv_inv_hom_hom_inv_assoc]
     simp only [← Category.assoc]
     congr 4
     simp only [Category.assoc]
     congr 3
-    simp_rw [associator_naturality_left_assoc,
-      associator_inv_naturality_right_assoc]
-    rw [pentagon_inv_inv_hom_hom_inv_assoc]
-    congr 2
-    rw [← @pentagon_hom_hom_inv_hom_hom_assoc]
-    simp_rw [← Category.assoc]
-    congr 1
-    simp_rw [Category.assoc]
-    simp_rw [← Category.assoc]
-    congr 1
-    simp_rw [Category.assoc]
-    rw [@associator_naturality_left_assoc, Iso.inv_hom_id_assoc,
-      whisker_exchange_assoc]
+    rw [← pentagon_hom_hom_inv_hom_hom_assoc, associator_naturality_left_assoc,
+      Iso.inv_hom_id_assoc, whisker_exchange_assoc]
     simp
 
 variable (F) in
