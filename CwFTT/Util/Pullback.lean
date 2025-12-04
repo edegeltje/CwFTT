@@ -68,7 +68,8 @@ lemma CategoryTheory.IsPullback.pullback {X₁ X₂ X₃ X₄ : C} [HasBinaryPro
       exact this.left.symm
     · cat_disch
     · intro s m hm₁ hm₂
-      simp [Limits.prod.hom_ext_iff] at hm₂ ⊢
+      simp only [prod.comp_lift, prod.hom_ext_iff, limit.lift_π, BinaryFan.mk_pt, BinaryFan.mk_fst,
+        BinaryFan.mk_snd] at hm₂ ⊢
       apply hf.hom_ext
       -- apply Limits.prod.hom_ext
       · simpa using hm₂.left
@@ -96,7 +97,8 @@ lemma CategoryTheory.IsPullback.prod {X₁ X₂ X₃ X₄ Y₁ Y₂ Y₃ Y₄ : 
     · intro s
       simp [Limits.prod.hom_ext_iff]
     · intro s m hm₁ hm₂
-      simp_all [Limits.prod.hom_ext_iff]
+      simp_all only [prod.hom_ext_iff, Category.assoc, prod.map_fst, prod.map_snd, limit.lift_π,
+        BinaryFan.mk_pt, BinaryFan.mk_fst, BinaryFan.mk_snd]
       constructor
       · apply hf.hom_ext
         · simpa using hm₁.left
