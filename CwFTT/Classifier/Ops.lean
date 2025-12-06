@@ -1,5 +1,5 @@
 import Mathlib.CategoryTheory.Topos.Classifier
-import Mathlib.CategoryTheory.Closed.Cartesian
+import Mathlib.CategoryTheory.Monoidal.Closed.Cartesian
 import Mathlib.CategoryTheory.Monoidal.OfHasFiniteProducts
 import Mathlib.CategoryTheory.Monad.Adjunction
 import Mathlib.CategoryTheory.Monad.Monadicity
@@ -20,13 +20,13 @@ variable {C : Type u} [Category.{v} C]
 /- these lemmas should really be in Topos.Classifier or something -/
 section
 
-instance (𝒞 : Classifier C) (X : C) : HasBinaryProduct 𝒞.Ω₀ X where
-  exists_limit := ⟨⟨BinaryFan.mk (𝒞.χ₀ X) (𝟙 X),by
-    apply Classical.choice
-    rw [BinaryFan.isLimit_iff_isIso_snd (𝒞.isTerminalΩ₀)]
-    simpa using IsIso.id X
-    ⟩
-  ⟩
+-- instance (𝒞 : Classifier C) (X : C) : HasBinaryProduct 𝒞.Ω₀ X where
+--   exists_limit := ⟨⟨BinaryFan.mk (𝒞.χ₀ X) (𝟙 X),by
+--     apply Classical.choice
+--     rw [BinaryFan.isLimit_iff_isIso_snd (𝒞.isTerminalΩ₀)]
+--     simpa using IsIso.id X
+--     ⟩
+--   ⟩
 
 @[reassoc]
 lemma Classifier.χ_id (𝒞 : Classifier C) (X : C) : 𝒞.χ (𝟙 X) = 𝒞.χ₀ _ ≫ 𝒞.truth :=
@@ -68,58 +68,67 @@ lemma Classifier.χ_pullback_fst (𝒞 : Classifier C) {X : C} (a : X ⟶ 𝒞.�
 
 end
 section and
-noncomputable abbrev Classifier.and (𝒞 : Classifier C) [HasBinaryProduct 𝒞.Ω 𝒞.Ω] :
-    𝒞.Ω ⨯ 𝒞.Ω ⟶ 𝒞.Ω :=
-  𝒞.χ (Limits.prod.map 𝒞.truth 𝒞.truth)
+open MonoidalCategory
 
-lemma Classifier.and_isPullback (𝒞 : Classifier C) [HasBinaryProduct 𝒞.Ω 𝒞.Ω] :
-    IsPullback (prod.map 𝒞.truth 𝒞.truth) (𝒞.χ₀ _) (𝒞.and) (𝒞.truth) := 𝒞.isPullback _
+instance [CartesianMonoidalCategory C] {A B D E : C} (f : A ⟶ B) [Mono f] (g : D ⟶ E) [Mono g] :
+    Mono (f ⊗ₘ g) := by
+  rw [tensorHom_def]
+  infer_instance
 
-lemma Classifier.χ_pullback [HasBinaryProducts C] {𝒞 : Classifier C} {X₁ X₂ X₃ X₄ : C}
+abbrev Classifier.and [CartesianMonoidalCategory C] (𝒞 : Classifier C) :
+    𝒞.Ω ⊗ 𝒞.Ω ⟶ 𝒞.Ω :=
+  𝒞.χ (𝒞.truth ⊗ₘ 𝒞.truth)
+
+lemma Classifier.and_isPullback (𝒞 : Classifier C) [CartesianMonoidalCategory C] :
+    IsPullback (𝒞.truth ⊗ₘ 𝒞.truth) (𝒞.χ₀ _) (𝒞.and) (𝒞.truth) := 𝒞.isPullback _
+
+lemma Classifier.χ_pullback [CartesianMonoidalCategory C] {𝒞 : Classifier C} {X₁ X₂ X₃ X₄ : C}
     {f₁ : X₁ ⟶ X₂} {f₂ : X₁ ⟶ X₃} {f₃ : X₂ ⟶ X₄} [Mono f₃] {f₄ : X₃ ⟶ X₄} [Mono f₄]
     (hf : IsPullback f₁ f₂ f₃ f₄) :
     letI : Mono (f₁ ≫ f₃) := mono_comp' (hf.mono_fst) inferInstance
-    𝒞.χ (f₁ ≫ f₃) = Limits.prod.lift (𝒞.χ f₃) (𝒞.χ f₄) ≫ 𝒞.and := by
+    𝒞.χ (f₁ ≫ f₃) = CartesianMonoidalCategory.lift (𝒞.χ f₃) (𝒞.χ f₄) ≫ 𝒞.and := by
   symm
   have : Mono (f₁ ≫ f₃) := mono_comp' (hf.mono_fst) inferInstance
   refine 𝒞.uniq _ (χ₀' := 𝒞.χ₀ _) ?_
   rw [Classifier.truth]
-  convert IsPullback.paste_vert (IsPullback.pullback_fst (𝒞.isPullback f₃) (𝒞.isPullback f₄) hf)
-    (𝒞.isPullback (Limits.prod.map 𝒞.truth 𝒞.truth))
-
+  convert IsPullback.paste_vert
+    (IsPullback.pullback_fst_monoidal (𝒞.isPullback f₃) (𝒞.isPullback f₄) hf)
+    (𝒞.isPullback (𝒞.truth ⊗ₘ 𝒞.truth))
   apply Subsingleton.elim
 -- #synth CartesianMonoidalCategory (C ⥤ Type (max u v))
 
-lemma Classifier.and_comm_aux (𝒞 : Classifier C) [HasBinaryProduct 𝒞.Ω 𝒞.Ω] :
-    (prod.braiding _ _).hom ≫ 𝒞.and = 𝒞.and := by
+attribute [local instance] CategoryTheory.BraidedCategory.ofCartesianMonoidalCategory in
+lemma Classifier.and_comm_aux [CartesianMonoidalCategory C] (𝒞 : Classifier C) :
+    (β_ _ _).hom ≫ 𝒞.and = 𝒞.and := by
   dsimp [Classifier.and]
-  apply 𝒞.uniq _ (χ₀' := (prod.braiding _ _).hom ≫ 𝒞.χ₀ _)
-  have : IsPullback (prod.map 𝒞.truth 𝒞.truth)
-      (prod.braiding _ _).hom (prod.braiding _ _).hom (prod.map 𝒞.truth 𝒞.truth) := by
+  apply 𝒞.uniq _ (χ₀' := (β_ _ _).hom ≫ 𝒞.χ₀ _)
+  have : IsPullback (𝒞.truth ⊗ₘ 𝒞.truth)
+      (β_ _ _).hom (β_ _ _).hom (𝒞.truth ⊗ₘ 𝒞.truth) := by
     exact .of_vert_isIso_mono (by simp)
-  exact (this).paste_vert (𝒞.isPullback (prod.map 𝒞.truth 𝒞.truth))
+  exact (this).paste_vert (𝒞.isPullback (𝒞.truth ⊗ₘ 𝒞.truth))
 
-lemma Classifier.and_comm (𝒞 : Classifier C) [HasBinaryProduct 𝒞.Ω 𝒞.Ω] {X : C} (f g : X ⟶ 𝒞.Ω) :
-    prod.lift f g ≫ 𝒞.and = prod.lift g f ≫ 𝒞.and := by
+lemma Classifier.and_comm [CartesianMonoidalCategory C] (𝒞 : Classifier C) {X : C} (f g : X ⟶ 𝒞.Ω) :
+    CartesianMonoidalCategory.lift f g ≫ 𝒞.and = CartesianMonoidalCategory.lift g f ≫ 𝒞.and := by
   nth_rw 1 [← 𝒞.and_comm_aux]
-  simp only [prod.braiding_hom, ← Category.assoc]
-  congr
-  ext <;> simp
+  simp only [← Category.assoc, CartesianMonoidalCategory.lift_braiding_hom]
 
-lemma Classifier.and_assoc_aux (𝒞 : Classifier C) [HasBinaryProducts C] :
-    (prod.associator ..).hom ≫ prod.map (𝟙 _) (𝒞.and) ≫ 𝒞.and = prod.map (𝒞.and) (𝟙 _) ≫ 𝒞.and := by
-  apply 𝒞.hom_ext _ _ (m := prod.map (prod.map (𝒞.truth) 𝒞.truth) (𝒞.truth))
-  · have assoc : IsPullback (prod.map (prod.map 𝒞.truth 𝒞.truth) 𝒞.truth)
-        (prod.associator _ _ _).hom (prod.associator _ _ _).hom
-        (prod.map 𝒞.truth (prod.map 𝒞.truth 𝒞.truth)) := by
+lemma Classifier.and_assoc_aux [CartesianMonoidalCategory C] (𝒞 : Classifier C) :
+    (α_ _ _ _).hom ≫ ((𝟙 _) ⊗ₘ (𝒞.and)) ≫ 𝒞.and = ((𝒞.and) ⊗ₘ (𝟙 _)) ≫ 𝒞.and := by
+  apply 𝒞.hom_ext _ _ (m := ((𝒞.truth) ⊗ₘ 𝒞.truth) ⊗ₘ (𝒞.truth))
+  · have assoc : IsPullback ((𝒞.truth ⊗ₘ 𝒞.truth) ⊗ₘ 𝒞.truth)
+        (α_ _ _ _).hom (α_ _ _ _).hom
+        (𝒞.truth ⊗ₘ (𝒞.truth ⊗ₘ 𝒞.truth)) := by
       exact .of_vert_isIso_mono (by simp)
-    have := ((IsPullback.id_vert 𝒞.truth).prod 𝒞.and_isPullback).paste_vert 𝒞.and_isPullback
+    have := ((IsPullback.id_vert 𝒞.truth).tensor 𝒞.and_isPullback).paste_vert 𝒞.and_isPullback
     exact assoc.paste_vert this
-  · exact (𝒞.and_isPullback.prod (IsPullback.id_vert 𝒞.truth)).paste_vert 𝒞.and_isPullback
+  · exact (𝒞.and_isPullback.tensor (IsPullback.id_vert 𝒞.truth)).paste_vert 𝒞.and_isPullback
 
-lemma Classifier.and_assoc (𝒞 : Classifier C) [HasBinaryProducts C] {X : C} (f g h : X ⟶ 𝒞.Ω) :
-    prod.lift (prod.lift f g ≫ 𝒞.and) h ≫ 𝒞.and = prod.lift f (prod.lift g h ≫ 𝒞.and) ≫ 𝒞.and := by
-  trans prod.lift (prod.lift f g) h ≫ prod.map 𝒞.and (𝟙 _) ≫ 𝒞.and
+lemma Classifier.and_assoc [CartesianMonoidalCategory C] (𝒞 : Classifier C) {X : C}
+    (f g h : X ⟶ 𝒞.Ω) :
+    CartesianMonoidalCategory.lift (CartesianMonoidalCategory.lift f g ≫ 𝒞.and) h ≫ 𝒞.and =
+    CartesianMonoidalCategory.lift f (CartesianMonoidalCategory.lift g h ≫ 𝒞.and) ≫ 𝒞.and := by
+  trans CartesianMonoidalCategory.lift (CartesianMonoidalCategory.lift f g) h ≫
+    (𝒞.and ⊗ₘ (𝟙 _)) ≫ 𝒞.and
   · simp
   · rw [← 𝒞.and_assoc_aux]
     simp [← Category.assoc]
@@ -141,7 +150,6 @@ instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C]
     simp only [Opposite.op_unop, Functor.id_obj] at heq
     let singleton : Y.unop ⟶ (internalHom.obj Y).obj 𝒞.Ω :=
       CartesianClosed.curry (𝒞.χ (lift (𝟙 _) (𝟙 _)))
-
     have (f' : X.unop ⟶ Y.unop) :
         _ ◁ singleton ≫ f' ▷ _ ≫ (exp.ev Y.unop).app 𝒞.Ω =
           𝒞.χ (lift (𝟙 _) (f')) := by
@@ -168,7 +176,6 @@ instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C]
             simp only [comp_lift, Category.comp_id] at hm₁ ⊢
             rw [← hm₁]
             simp only [lift_fst]))
-
     have h : 𝒞.χ (lift (𝟙 _) f.unop) = 𝒞.χ (lift (𝟙 _) g.unop) := by
       rw [← this,← this,heq]
     clear heq this singleton
@@ -181,13 +188,10 @@ instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C]
     rw [hl] at hr
     simpa using congr($(hr).op).symm
 
-
 instance (𝒞 : Classifier C) [CartesianMonoidalCategory C] [CartesianClosed C] :
     (internalHom.flip.obj 𝒞.Ω).ReflectsIsomorphisms :=
     letI : HasClassifier C := ⟨⟨𝒞⟩⟩
   inferInstance
-
-
 
 noncomputable def Classifier.exists (𝒞 : Classifier C) [CartesianMonoidalCategory C]
     [CartesianClosed C]
@@ -226,7 +230,7 @@ lemma Classifier.beck_condition (𝒞 : Classifier C) [CartesianMonoidalCategory
     refine pullback.lift ?_ ?_ ?_
     · refine pullback.fst _ _ ≫ (f ▷ (internalHom.obj (Opposite.op Y)).obj 𝒞.Ω)
     · exact 𝒞.χ₀ _
-    · simp
+    · simp only [Functor.comp_obj, curriedTensor_obj_obj, Functor.id_obj, Category.assoc]
       rw [← uncurry_internalHom_map_app,CartesianClosed.uncurry_eq]
       simp only
       rw [pullback.condition_assoc,pullback.condition,← Category.assoc]
@@ -426,15 +430,15 @@ For this, we need to show that Topoi have *partial map* classifiers
 
 -/
 
-instance : IsRegularEpiCategory C where
-  regularEpiOfEpi {X Y} f _ := ⟨{
-    W := (pullback f f)
-    left := (pullback.fst f f)
-    right := (pullback.snd f f)
-    w := (pullback.condition)
-    isColimit := (by
-      sorry)
-  }⟩
+-- instance : IsRegularEpiCategory C where
+--   regularEpiOfEpi {X Y} f _ := ⟨{
+--     W := (pullback f f)
+--     left := (pullback.fst f f)
+--     right := (pullback.snd f f)
+--     w := (pullback.condition)
+--     isColimit := (by
+--       sorry)
+--   }⟩
 
 -- example {X Y : C} (f : X ⟶ Y) : Epi (factorThruImage f) := inferInstance
 
@@ -473,11 +477,11 @@ end or
 
 
 
-
--- don't worry about this for now
-noncomputable abbrev Classifier.«→» (𝒞 : Classifier C) [HasFiniteLimits C]
-    [HasEqualizer 𝒞.and Limits.prod.fst] : 𝒞.Ω ⨯ 𝒞.Ω ⟶ 𝒞.Ω :=
-  𝒞.χ (Limits.equalizer.ι 𝒞.and Limits.prod.fst)
+open MonoidalCategory in
+noncomputable abbrev Classifier.«→» [CartesianMonoidalCategory C] (𝒞 : Classifier C)
+    [HasFiniteLimits C]
+    [HasEqualizer 𝒞.and (CartesianMonoidalCategory.fst _ _)] : 𝒞.Ω ⊗ 𝒞.Ω ⟶ 𝒞.Ω :=
+  𝒞.χ (Limits.equalizer.ι 𝒞.and (CartesianMonoidalCategory.fst _ _))
 
 
 

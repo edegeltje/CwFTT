@@ -40,39 +40,6 @@ instance (F : C ⥤ D) [Limits.PreservesFiniteLimits F] : Functor.PreservesMonom
     convert ((mono_iff_isPullback m).mp ‹Mono m›).map F <;> simp
 
 @[simps]
-def Classifier.ofGeometricFunctor (𝒞₁ : Classifier C) (F : C ⥤ D) (G : D ⥤ C)
-    [Limits.PreservesFiniteLimits G] (hFG : G ⊣ F) : Classifier D where
-  Ω₀ := F.obj 𝒞₁.Ω₀
-  Ω := F.obj 𝒞₁.Ω
-  truth := F.map 𝒞₁.truth
-  mono_truth := by
-    have := hFG.rightAdjoint_preservesLimits
-    have : Limits.IsTerminal (F.obj 𝒞₁.Ω₀) :=
-      Limits.IsTerminal.isTerminalObj F 𝒞₁.Ω₀ isTerminalΩ₀
-    exact Limits.IsTerminal.mono_from this (F.map 𝒞₁.truth)
-  χ₀ Y := hFG.unit.app Y ≫ F.map (𝒞₁.χ₀ (G.obj Y))
-  χ m :=
-    (hFG.unit.app _) ≫ F.map (𝒞₁.χ (G.map m))
-  isPullback {X Y} m _ := by
-    have := hFG.rightAdjoint_preservesLimits
-
-    have := ((𝒞₁.isPullback (G.map m)).map F)
-    apply IsPullback.paste_vert _ this
-
-
-
-    sorry
-    --   (e.counitIso.app _) (.refl _) (.refl _) <;> simp
-  uniq {F G} m _ := by
-    sorry
-    -- intro χ₀' χ' hχ'
-    -- have : e.inverse.map χ' ≫ e.unitInv.app _ = 𝒞₁.χ (e.inverse.map m) := by
-    --   apply 𝒞₁.uniq (e.inverse.map m) (χ₀' := e.inverse.map χ₀' ≫ e.unitInv.app _)
-    --   exact (hχ'.map (e.inverse)).paste_vert <| IsPullback.of_vert_isIso_mono (by simp)
-    -- simpa using congr(e.counitInv.app G ≫ e.functor.map $this)
-
-
-@[simps]
 def Classifier.ofEquivalence (𝒞₁ : Classifier C) (e : C ≌ D) : Classifier D where
   Ω₀ := e.functor.obj 𝒞₁.Ω₀
   Ω := e.functor.obj 𝒞₁.Ω

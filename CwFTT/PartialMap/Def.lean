@@ -656,19 +656,18 @@ lemma _root_.CategoryTheory.withPartialMaps_obj [HasPullbacks C] (X : LocallyDis
 lemma _root_.CategoryTheory.withPartialMaps_map [HasPullbacks C] {X Y : LocallyDiscrete C}
     (f : X ⟶ Y) : (withPartialMaps C).map f = PartialMap.ofHom f.as := rfl
 
+lemma ofHom_injective [HasPullbacks C] {X Y : C} :
+    Function.Injective (PartialMap.ofHom (X := X) (Y := Y)) := by
+  intro f g h
+  simp_rw [PartialMap.ofHom_eq_mk] at h
+  rw [PartialMap.mk_eq] at h
+  obtain ⟨e,hid,hf⟩ := h
+  simp only [Category.comp_id] at hid
+  rw [hid] at hf
+  simpa using hf.symm
+
 instance [HasPullbacks C] : (toLocallyDiscrete C ⋙ (withPartialMaps C).toFunctor).Faithful where
-  map_injective {X Y} := by
-    intro f g
-    simp only [Functor.comp_obj, StrictPseudofunctor.toFunctor_obj, withPartialMaps_obj,
-      toLocallyDiscrete_obj_as, Functor.comp_map, toLocallyDiscrete_map,
-      StrictPseudofunctor.toFunctor_map, withPartialMaps_map, Quiver.Hom.toLoc_as]
-    intro h
-    simp_rw [PartialMap.ofHom_eq_mk] at h
-    rw [PartialMap.mk_eq] at h
-    obtain ⟨e,hid,hf⟩ := h
-    simp only [Category.comp_id] at hid
-    rw [hid] at hf
-    simpa using hf.symm
+  map_injective {_ _} := ofHom_injective
 
 lemma mono_of_mono_ofHom [HasPullbacks C] {X Y : C} {f : X ⟶ Y} :
     Mono (PartialMap.ofHom f) → Mono f := by

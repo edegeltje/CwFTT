@@ -5,42 +5,45 @@ universe v u
 namespace CategoryTheory
 open Limits
 
-variable {C : Type u} [Category.{v} C]
+variable {C : Type u} [Category.{v} C] [CartesianMonoidalCategory C]
 
-structure LTT (𝒞 : Classifier C) [HasFiniteLimits C] where
+open MonoidalCategory
+
+structure LTT [CartesianMonoidalCategory C] (𝒞 : Classifier C) where
   locally : 𝒞.Ω ⟶ 𝒞.Ω
   locally_true : 𝒞.truth ≫ locally = 𝒞.truth
   locally_locally : locally ≫ locally = locally
-  locally_and : 𝒞.and ≫ locally = prod.map locally locally ≫ 𝒞.and
+  locally_and : 𝒞.and ≫ locally = (locally ⊗ₘ locally) ≫ 𝒞.and
 
 attribute [reassoc] LTT.locally_true LTT.locally_locally LTT.locally_and
 
-def LTT.χclosure {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
+def LTT.χclosure {𝒞 : Classifier C} (j : LTT 𝒞)
     {X Y : C} (m : X ⟶ Y) [Mono m] : Y ⟶ 𝒞.Ω := 𝒞.χ m ≫ j.locally
 
-noncomputable def LTT.closureObj {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
+noncomputable def LTT.closureObj [HasPullbacks C] {𝒞 : Classifier C} (j : LTT 𝒞)
     {X Y : C} (m : X ⟶ Y) [Mono m] : C := pullback (j.χclosure m) 𝒞.truth
-noncomputable def LTT.closure {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
+
+noncomputable def LTT.closure [HasPullbacks C] {𝒞 : Classifier C} (j : LTT 𝒞)
     {X Y : C} (m : X ⟶ Y) [Mono m] : j.closureObj m ⟶ Y := pullback.fst (j.χclosure m) 𝒞.truth
 
-instance {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
+instance [HasPullbacks C] {𝒞 : Classifier C} (j : LTT 𝒞)
     {X Y : C} (m : X ⟶ Y) [Mono m] : Mono (j.closure m) :=
   IsPullback.mono_fst (.of_hasPullback (j.χclosure m) 𝒞.truth)
 
-lemma LTT.closure_isPullback {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
+lemma LTT.closure_isPullback [HasPullbacks C] {𝒞 : Classifier C} (j : LTT 𝒞)
     {X Y : C} (m : X ⟶ Y) [Mono m] :
     IsPullback (j.closure m) (𝒞.χ₀ _) (j.χclosure m) (𝒞.truth) := by
   convert IsPullback.of_hasPullback (j.χclosure m) (𝒞.truth)
   apply Subsingleton.elim
 
 @[simp]
-lemma LTT.χ_closure_eq {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
+lemma LTT.χ_closure_eq [HasPullbacks C] {𝒞 : Classifier C} (j : LTT 𝒞)
     {X Y : C} (m : X ⟶ Y) [Mono m] : 𝒞.χ (j.closure m) = j.χclosure m := by
   dsimp [closure,LTT.χclosure]
   symm
   exact 𝒞.uniq _ <| j.closure_isPullback m
 
-noncomputable def LTT.closureEmbed {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
+noncomputable def LTT.closureEmbed [HasPullbacks C] {𝒞 : Classifier C} (j : LTT 𝒞)
     {X Y : C} (m : X ⟶ Y) [Mono m] : X ⟶ j.closureObj m := pullback.lift m (𝒞.χ₀ _)
     (by
       dsimp [LTT.χclosure]
@@ -48,11 +51,11 @@ noncomputable def LTT.closureEmbed {𝒞 : Classifier C} [HasFiniteLimits C] (j 
 
 
 --@[reassoc] -- not sure if this should be simp, tbh
-lemma LTT.closureEmbed_closure_eq {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
+lemma LTT.closureEmbed_closure_eq [HasPullbacks C] {𝒞 : Classifier C} (j : LTT 𝒞)
     {X Y : C} (m : X ⟶ Y) [Mono m] :
   j.closureEmbed m ≫ j.closure m = m := pullback.lift_fst _ _ _
 
-instance {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
+instance [HasPullbacks C] {𝒞 : Classifier C} (j : LTT 𝒞)
     {X Y : C} (m : X ⟶ Y) [Mono m] : Mono (j.closureEmbed m) :=
   mono_of_mono_fac (j.closureEmbed_closure_eq m)
 
@@ -111,8 +114,9 @@ lemma LTT.IsDense.of_isPullback {𝒞 : Classifier C} [HasFiniteLimits C] (j : L
     [Mono f₃] [Mono f₄] (hf : IsPullback f₁ f₂ f₃ f₄) (hf₃ : j.IsDense f₃) (hf₄ : j.IsDense f₄) :
     letI : Mono (f₁ ≫ f₃) := mono_comp' (hf.mono_fst) inferInstance
     j.IsDense (f₁ ≫ f₃) := by
-  rw [j.isDense_iff,𝒞.χ_pullback hf,Category.assoc,j.locally_and, prod.lift_map_assoc,
-    hf₃.χ_locally_eq_χ_id, hf₄.χ_locally_eq_χ_id,← 𝒞.χ_pullback (.id_vert (𝟙 _))]
+  rw [j.isDense_iff,𝒞.χ_pullback hf,Category.assoc,j.locally_and,
+    CartesianMonoidalCategory.lift_map_assoc, hf₃.χ_locally_eq_χ_id, hf₄.χ_locally_eq_χ_id,
+    ← 𝒞.χ_pullback (.id_vert (𝟙 _))]
   simp
 
 /-- The intersection of two closed subobjects is again closed. -/
@@ -121,8 +125,8 @@ lemma LTT.IsClosed.of_isPullback {𝒞 : Classifier C} [HasFiniteLimits C] (j : 
     [Mono f₃] [Mono f₄] (hf : IsPullback f₁ f₂ f₃ f₄) (hf₃ : j.IsClosed f₃) (hf₄ : j.IsClosed f₄) :
     letI : Mono (f₁ ≫ f₃) := mono_comp' (hf.mono_fst) inferInstance
     j.IsClosed (f₁ ≫ f₃) := by
-  rw [j.isClosed_iff,𝒞.χ_pullback hf,Category.assoc,j.locally_and, prod.lift_map_assoc,
-    hf₃.χ_locally_eq_χ_self, hf₄.χ_locally_eq_χ_self]
+  rw [j.isClosed_iff,𝒞.χ_pullback hf,Category.assoc,j.locally_and,
+    CartesianMonoidalCategory.lift_map_assoc, hf₃.χ_locally_eq_χ_self, hf₄.χ_locally_eq_χ_self]
 
 lemma LTT.IsDense.closure_isIso {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
     {X Y : C} {m : X ⟶ Y} [Mono m] (hm : j.IsDense m) : IsIso (j.closure m) := by

@@ -1,4 +1,4 @@
-import Mathlib.CategoryTheory.Closed.Cartesian
+import Mathlib.CategoryTheory.Monoidal.Closed.Cartesian
 universe v u
 namespace CategoryTheory
 variable {C : Type u} [Category.{v} C] [CartesianMonoidalCategory C] [CartesianClosed C]
