@@ -404,6 +404,8 @@ lemma LTT.toGrothendieckTopology_toLTT (j : LTT (Presheaf.classifier C)) :
     rw [FunctorToTypes.naturality]
     rfl
 
+#print axioms GrothendieckTopology.toLTT
+
 lemma GrothendieckTopology.toLTT_toGrothendieckTopology (J : GrothendieckTopology C) :
   J.toLTT.toGrothendieckTopology = J := by
   cases J with
@@ -416,7 +418,17 @@ lemma GrothendieckTopology.toLTT_toGrothendieckTopology (J : GrothendieckTopolog
     rw [← Sieve.id_mem_iff_eq_top]
     simp [covers_iff, ←GrothendieckTopology.mem_sieves_iff_coe]
 
+/-
+info: 'CategoryTheory.LTT.toGrothendieckTopology_toLTT' depends on axioms:
+  [propext, Classical.choice, Quot.sound]
+-/
+#print axioms LTT.toGrothendieckTopology_toLTT
 
+/-
+info: 'CategoryTheory.GrothendieckTopology.toLTT_toGrothendieckTopology' depends on axioms:
+  [propext, Classical.choice, Quot.sound]
+-/
+#print axioms GrothendieckTopology.toLTT_toGrothendieckTopology
 
 end
 

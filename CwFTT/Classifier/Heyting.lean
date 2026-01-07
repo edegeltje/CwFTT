@@ -3,16 +3,15 @@ import CwFTT.Classifier.Ops
 universe v u
 namespace CategoryTheory
 open Limits
-variable {C : Type u} [Category.{v} C]
+variable {C : Type u} [Category.{v} C] [CartesianMonoidalCategory C]
 
-instance [HasBinaryProducts C] (𝒞 : Classifier C) (X : C) : LE (X ⟶ 𝒞.Ω) where
-  le f g := prod.lift f g ≫ 𝒞.and = f
+instance (𝒞 : Classifier C) (X : C) : LE (X ⟶ 𝒞.Ω) where
+  le f g := CartesianMonoidalCategory.lift f g ≫ 𝒞.and = f
 
-lemma Classifier.le_def [HasBinaryProducts C] (𝒞 : Classifier C) {X : C} (f g : X ⟶ 𝒞.Ω) :
-  f ≤ g ↔ (prod.lift f g ≫ 𝒞.and = f) := Iff.rfl
+lemma Classifier.le_def (𝒞 : Classifier C) {X : C} (f g : X ⟶ 𝒞.Ω) :
+  f ≤ g ↔ (CartesianMonoidalCategory.lift f g ≫ 𝒞.and = f) := Iff.rfl
 
-
-instance [HasFiniteLimits C] (𝒞 : Classifier C) (X : C) : PartialOrder (X ⟶ 𝒞.Ω) where
+instance [HasPullbacks C] (𝒞 : Classifier C) (X : C) : PartialOrder (X ⟶ 𝒞.Ω) where
   le_refl a := by -- 𝒞.and is co-diagonal(?)
     rw [𝒞.le_def, ← 𝒞.χ_pullback_fst a,← 𝒞.χ_pullback (f₁ := 𝟙 _) (f₂ := 𝟙 _)]
     · simp
@@ -23,9 +22,9 @@ instance [HasFiniteLimits C] (𝒞 : Classifier C) (X : C) : PartialOrder (X ⟶
   le_antisymm a b hab hba := by -- 𝒞.and is commutative
     rw [← hab,𝒞.and_comm,hba]
 
-noncomputable instance [HasFiniteLimits C] (𝒞 : Classifier C) (X : C) :
+noncomputable instance [HasPullbacks C] (𝒞 : Classifier C) (X : C) :
     SemilatticeInf (X ⟶ 𝒞.Ω) where
-  inf f g := (prod.lift f g) ≫ 𝒞.and
+  inf f g := (CartesianMonoidalCategory.lift f g) ≫ 𝒞.and
   inf_le_left f g := by
     rw [𝒞.le_def, 𝒞.and_comm f g, 𝒞.and_assoc, le_refl f]
   inf_le_right f g := by
@@ -33,8 +32,12 @@ noncomputable instance [HasFiniteLimits C] (𝒞 : Classifier C) (X : C) :
   le_inf a b c hab hac := by
     rw [𝒞.le_def,← 𝒞.and_assoc,hab,hac]
 
-
-
+instance [HasFiniteLimits C] (𝒞 : Classifier C) (X : C) :
+    Lattice (X ⟶ 𝒞.Ω) where
+  sup f g := (CartesianMonoidalCategory.lift f g) ≫ 𝒞.or
+  le_sup_left := _
+  le_sup_right := _
+  sup_le := _
 
 example [HasFiniteLimits C] (𝒞 : Classifier C) (X : C) : HeytingAlgebra (X ⟶ 𝒞.Ω) where
   sup := _

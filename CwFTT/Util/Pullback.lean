@@ -193,11 +193,32 @@ lemma CategoryTheory.IsPullback.of_bot_right {X₁ X₂ X₃ X₄ X₅ X₆ X₇
     (hf.of_bot (hf_tl.horiz_comp hf_tr.toCommSq).w (hf_bl.paste_horiz hf_br)).of_right
     hf_tl.w hf_tr
 
+lemma CategoryTheory.IsPullback.of_comp_of_commsq {X₁ X₂ X₃ X₄ Z : C} {f₁ : X₁ ⟶ X₂}
+    {f₂ : X₁ ⟶ X₃} {f₃ : X₂ ⟶ X₄} {f₄ : X₃ ⟶ X₄}
+    (g : X₄ ⟶ Z)
+    (hfg : IsPullback f₁ f₂ (f₃ ≫ g) (f₄ ≫ g)) (hf : CommSq f₁ f₂ f₃ f₄) :
+    IsPullback f₁ f₂ f₃ f₄ := by
+  have hpb: IsPullback (f₁ ≫ 𝟙 _) (f₂ ≫ 𝟙 _) (f₃ ≫ g) (f₄ ≫ g) := by
+    convert hfg <;> simp
+  -- have hf' : CommSq f₁ f₂ f₃ f₄ := hf
+  refine ⟨⟨?_⟩,⟨?_⟩⟩
+  · exact hf.w
+  · apply PullbackCone.IsLimit.mk _ (fun s => hfg.lift s.fst s.snd (s.condition_assoc _))
+    · simp
+    · simp
+    · intro s m hm₁ hm₂
+      apply hfg.hom_ext <;> simpa
+
 lemma CategoryTheory.IsPullback.of_comp_of_mono {X₁ X₂ X₃ X₄ Z : C} {f₁ : X₁ ⟶ X₂}
     {f₂ : X₁ ⟶ X₃} {f₃ : X₂ ⟶ X₄} {f₄ : X₃ ⟶ X₄}
     (g : X₄ ⟶ Z) [Mono g]
-    (hf : IsPullback f₁ f₂ (f₃ ≫ g) (f₄ ≫ g)) : IsPullback f₁ f₂ f₃ f₄ := by
-  have hpb: IsPullback (f₁ ≫ 𝟙 _) (f₂ ≫ 𝟙 _) (f₃ ≫ g) (f₄ ≫ g) := by
-    convert hf <;> simp
-  have hf' : CommSq f₁ f₂ f₃ f₄ := ⟨Mono.right_cancellation _ _ (by simpa using hf.w)⟩
-  exact hpb.of_bot_right hf' (.id_horiz f₃) (.id_vert f₄) (.of_horiz_isIso_mono (by simp))
+    (hfg : IsPullback f₁ f₂ (f₃ ≫ g) (f₄ ≫ g)) : IsPullback f₁ f₂ f₃ f₄ := by
+  have hf' : CommSq f₁ f₂ f₃ f₄ := ⟨Mono.right_cancellation _ _ (by simpa using hfg.w)⟩
+  exact .of_comp_of_commsq g hfg hf'
+
+@[reassoc]
+lemma CategoryTheory.IsPullback.comp_lift {X₁ X₂ X₃ X₄ : C} {f₁ : X₁ ⟶ X₂}
+    {f₂ : X₁ ⟶ X₃} {f₃ : X₂ ⟶ X₄} {f₄ : X₃ ⟶ X₄} (hf : IsPullback f₁ f₂ f₃ f₄)
+    {Y₁ Y₂} (f : Y₁ ⟶ Y₂) {g₁ : Y₂ ⟶ X₂} {g₂ : Y₂ ⟶ X₃} (hg : g₁ ≫ f₃ = g₂ ≫ f₄) :
+    f ≫ hf.lift g₁ g₂ hg = hf.lift (f ≫ g₁) (f ≫ g₂) (by simpa using congr(f ≫ $hg)) := by
+  apply hf.hom_ext <;> simp

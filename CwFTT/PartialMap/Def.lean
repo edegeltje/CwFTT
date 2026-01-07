@@ -59,6 +59,13 @@ variable (C) in
 structure _root_.CategoryTheory.WithPrePartialMaps where
   mk :: (out : C)
 
+attribute [pp_nodot] WithPrePartialMaps.mk
+
+-- TODO : Modulize, make meta
+@[app_unexpander WithPrePartialMaps.mk]
+protected def WithPrePartialMaps.unexpander_mk : Lean.PrettyPrinter.Unexpander
+  | s => pure s
+
 instance : Quiver (WithPrePartialMaps C) where
   Hom X Y := PrePartialMap X.out Y.out
 
@@ -66,13 +73,15 @@ instance (X Y : WithPrePartialMaps C) : Category (X ⟶ Y) := inferInstanceAs
   (Category (PrePartialMap X.out Y.out))
 
 @[inherit_doc PrePartialMap]
-local notation:40 x:41 " ⇀' " y:41 =>
+scoped notation:40 x:41 " ⇀' " y:41 =>
   (WithPrePartialMaps.mk x) ⟶ (WithPrePartialMaps.mk y)
 
 /-- The subcategory of partial map diagrams is thin, making it sensible to use `ThinSkeleton` -/
 instance {X Y : C} : Quiver.IsThin (X ⇀' Y) := fun
   | .mk obj property => fun b =>
-    { allEq f₁ f₂ := ConeMorphism.ext _ _ <| b.property.right_cancellation _ _ (by simp) }
+    { allEq f₁ f₂ := ObjectProperty.hom_ext _ <| ConeMorphism.ext _ _
+      <| b.property.right_cancellation _ _ (by simp)
+      }
 
 namespace PrePartialMap
 
@@ -136,25 +145,26 @@ lemma mkOfMono_obj_snd {X Y : C} (m : Y ⟶ X) [Mono m] : (mkOfMono m).obj.snd =
 def homMk {X Y : C} {f₁ f₂ : X ⇀' Y} (g : f₁.obj.pt ⟶ f₂.obj.pt)
     (hgm : g ≫ f₂.obj.fst = f₁.obj.fst := by cat_disch)
     (hgf : g ≫ f₂.obj.snd = f₁.obj.snd := by cat_disch) :
-    f₁ ⟶ f₂ where
-  hom := g
-  w j := by
-    match j with
-    | .mk .left => exact hgm
-    | .mk .right => exact hgf
+    f₁ ⟶ f₂ := ObjectProperty.homMk
+  {
+    hom := g
+    w j := by
+      match j with
+      | .mk .left => exact hgm
+      | .mk .right => exact hgf}
 
 @[simp]
-lemma homMk_hom {X Y : C} (f₁ f₂ : X ⇀' Y) (g : f₁.obj.pt ⟶ f₂.obj.pt)
+lemma homMk_hom_hom {X Y : C} (f₁ f₂ : X ⇀' Y) (g : f₁.obj.pt ⟶ f₂.obj.pt)
     (hgm : g ≫ f₂.obj.fst = f₁.obj.fst) (hgf : g ≫ f₂.obj.snd = f₁.obj.snd) :
-    (homMk g hgm hgf).hom = g := rfl
+    (homMk g hgm hgf).hom.hom = g := rfl
 
 @[simp]
 lemma _root_.CategoryTheory.Limits.ConeMorphism.w_left {X Y : C} {f g : X ⇀' Y} (h : f ⟶ g) :
-  h.hom ≫ g.obj.fst = f.obj.fst := h.w (.mk .left)
+  h.hom.hom ≫ g.obj.fst = f.obj.fst := h.hom.w (.mk .left)
 
 @[simp]
 lemma _root_.CategoryTheory.Limits.ConeMorphism.w_right {X Y : C} {f g : X ⇀' Y} (h : f ⟶ g) :
-  h.hom ≫ g.obj.snd = f.obj.snd := h.w (.mk .right)
+  h.hom.hom ≫ g.obj.snd = f.obj.snd := h.hom.w (.mk .right)
 
 /-- The category is thin, so all maps are equal. -/
 @[ext]
@@ -164,12 +174,12 @@ lemma hom_ext {X Y : C} {f g : X ⇀' Y} (h₁ h₂ : f ⟶ g) :
 
 @[simp]
 lemma eqToHom_hom {X Y : C} {f g : X ⇀' Y} (h : f = g) :
-    (eqToHom h).hom = eqToHom (congr(($h).obj.pt)) := by
+    (eqToHom h).hom = eqToHom ((congr(($h).obj))) := by
   cases h; dsimp [(𝟙 ·)]
 
 @[simp]
 lemma homMk_eta {X Y : C} {f g : X ⇀' Y} (h : f ⟶ g) :
-    homMk (h.hom) (h.w_left) (h.w_right) = h := by
+    homMk (h.hom.hom) (h.hom.w (.mk .left)) (h.hom.w (.mk .right)) = h := by
   ext
 
 -- not too sure about the use of this
@@ -191,17 +201,15 @@ lemma homMk_comp {X Y : C} {f₁ f₂ f₃ : X ⇀' Y} (g₁ : f₁.obj.pt ⟶ f
 
 /-- The functor from the category of partial map diagrams to the category of subobject diagrams -/
 def overMono {X Y : C} : X ⇀' Y ⥤ MonoOver X where
-  obj f := {
-    obj := Over.mk f.obj.fst
-    property := f.property
-  }
-  map g := Over.homMk (g.hom) (g.w_left)
+  obj f := ⟨(Over.mk f.obj.fst),f.property⟩
+  map g :=
+  ObjectProperty.homMk <| Over.homMk (g.hom.hom) (g.hom.w (.mk .left))
 
 /-- The functor from the category of partial map diagrams from `X` to `Y` to the
   over-category `C/Y`. -/
 def over {X Y : C} : X ⇀' Y ⥤ Over Y where
   obj f := Over.mk f.obj.snd
-  map g := Over.homMk (g.hom)
+  map g := Over.homMk (g.hom.hom)
 
 variable [HasPullbacks C]
 
@@ -257,14 +265,14 @@ noncomputable def associator {W X Y Z : C} (f₁ : W ⇀' X) (f₂ : X ⇀' Y) (
 /-- left whiskering in the bicategory of partial map diagrams -/
 noncomputable def whiskerLeft {X Y Z : C} (f : X ⇀' Y) {g₁ g₂ : Y ⇀' Z} (h : g₁ ⟶ g₂) :
     comp f g₁ ⟶ comp f g₂ :=
-  homMk (pullback.map (f.obj.snd) g₁.obj.fst f.obj.snd g₂.obj.fst (𝟙 f.obj.pt) h.hom (𝟙 Y)
+  homMk (pullback.map (f.obj.snd) g₁.obj.fst f.obj.snd g₂.obj.fst (𝟙 f.obj.pt) h.hom.hom (𝟙 Y)
     (by simp) (by simp)) (by simp [comp]) (by simp [comp])
 
 /-- right whiskering in the bicategory of partial map diagrams -/
 noncomputable def whiskerRight {X Y Z : C} {f₁ f₂ : X ⇀' Y} (h : f₁ ⟶ f₂) (g : Y ⇀' Z) :
     comp f₁ g ⟶ comp f₂ g :=
-  homMk (pullback.map f₁.obj.snd g.obj.fst f₂.obj.snd g.obj.fst h.hom (𝟙 g.obj.pt) (𝟙 Y) (by simp)
-    (by simp)) (by simp [comp]) (by simp [comp])
+  homMk (pullback.map f₁.obj.snd g.obj.fst f₂.obj.snd g.obj.fst h.hom.hom (𝟙 g.obj.pt) (𝟙 Y)
+    (by simp) (by simp)) (by simp [comp]) (by simp [comp])
 
 /-- the left unitor in the bicategory of partial map diagrams. -/
 noncomputable def leftUnitor {X Y : C} (f : X ⇀' Y) : comp (mkOfHom (𝟙 X)) f ≅ f where
@@ -379,6 +387,13 @@ variable (C) in
 structure _root_.CategoryTheory.WithPartialMaps : Type u where
   mk :: (out : C)
 
+attribute [pp_nodot] WithPartialMaps.mk
+
+-- TODO : Modulize, make meta
+@[app_unexpander WithPartialMaps.mk]
+protected def WithPartialMaps.unexpander_mk : Lean.PrettyPrinter.Unexpander
+  | s => pure s
+
 instance : Quiver (WithPartialMaps C) where
   Hom X Y := PartialMap X.out Y.out
 
@@ -402,8 +417,8 @@ lemma le_iff {X Y U₁ : C} {m₁ : U₁ ⟶ X} [Mono m₁] {f₁ : U₁ ⟶ Y}
   dsimp [mk, ThinSkeleton.mk, Quotient.mk']
   constructor
   · rintro ⟨z⟩
-    use z.hom, z.w (.mk .left)
-    exact z.w (.mk .right)
+    use z.hom.hom, z.hom.w (.mk .left)
+    exact z.hom.w (.mk .right)
   · rintro ⟨f,hf₁,hf₂⟩
     exact ⟨PrePartialMap.homMk f hf₁ hf₂⟩
 
@@ -422,16 +437,16 @@ lemma mk_eq {U₁ U₂ X Y : C} (m₁ : U₁ ⟶ X) [Mono m₁] (f₁ : U₁ ⟶
     have := Quotient.eq.mp h
     simp only [isIsomorphicSetoid, IsIsomorphic] at this
     obtain ⟨e'⟩ := this
-    use ⟨e'.hom.hom,e'.inv.hom,congr($(e'.hom_inv_id).hom),congr($(e'.inv_hom_id).hom)⟩
+    use ⟨e'.hom.hom.hom,e'.inv.hom.hom,congr($(e'.hom_inv_id).hom.hom),
+      congr($(e'.inv_hom_id).hom.hom)⟩
     simp only
     constructor
-    · simpa [-ConeMorphism.w, -ConeMorphism.w_left] using e'.hom.w_left
-    · simpa [-ConeMorphism.w, -ConeMorphism.w_right] using e'.hom.w (.mk .right)
+    · simpa using e'.hom.hom.w (.mk .left)
+    · simpa using e'.hom.hom.w (.mk .right)
   · rintro ⟨e,he₁, he₂⟩
     apply Quotient.sound
     constructor
     refine (ObjectProperty.IsPartialMap X Y).isoMk ?_
-    simp only [ObjectProperty.ι_obj]
     apply BinaryFan.ext e <;> simp [PrePartialMap.mk, he₁, he₂]
 
 def rec {X Y : C} {motive : X ⇀ Y → Sort*}
@@ -735,20 +750,20 @@ noncomputable def coyoneda [HasPullbacks C] :
     (WithPartialMaps C)ᵒᵖ ⥤ (WithPartialMaps C) ⥤ Cat where
   obj X := {
     obj Y := Cat.of <| (X.unop) ⟶ (Y)
-    map {Y Z} g := Bicategory.postcomp (X.unop) g
+    map {Y Z} g := (Bicategory.postcomp (X.unop) g).toCatHom
     map_id Y := by
-      apply Functor.ext (by intro f; exact Category.comp_id f)
+      apply Cat.Hom.ext <| Functor.ext (by intro f; exact Category.comp_id f)
     map_comp {Y Z W} g₁ g₂ := by
-      apply Functor.ext (by intro f; simp)
+      apply Cat.Hom.ext <| Functor.ext (by intro f; simp)
   }
   map {X₁ X₂} f := {
-    app Y := {
+    app Y := Functor.toCatHom {
       obj g := f.unop ≫ g
       map {g₁ g₂} h := f.unop ◁ h
       map_id g := whiskerLeft_id f.unop g
       map_comp {g₁ g₂ g₂} h₁ h₂ := whiskerLeft_comp f.unop h₁ h₂
     }
-    naturality {Y Z} g := Functor.ext (by simp)
+    naturality {Y Z} g := Cat.Hom.ext <| Functor.ext (by simp)
   }
   map_id X := by
     ext Y

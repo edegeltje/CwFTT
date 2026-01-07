@@ -1,13 +1,22 @@
 # CwFTT
 
-## GitHub configuration
+## This is a scratch project!!!
 
-To set up your new GitHub repository, follow these steps:
+## in this project
+- topos theory
+- categorical equivalence between zfset and type
 
-* Under your repository name, click **Settings**.
-* In the **Actions** section of the sidebar, click "General".
-* Check the box **Allow GitHub Actions to create and approve pull requests**.
-* Click the **Pages** section of the settings sidebar.
-* In the **Source** dropdown menu, select "GitHub Actions".
+## TODOS: (in order of proof dependency)
 
-After following the steps above, you can remove this section from the README file.
+
+- [x] prove that topoi have partial map classifiers
+- [x] prove that the over-categories of a topos are topoi
+- [x] prove that topoi are locally cartesian closed
+- prove that topoi have (epi-mono factorization)/imagemaps/...
+- prove that there is an operation `𝒞.or : 𝒞.Ω ⊗ 𝒞.Ω⟶ 𝒞.Ω` which is lawful
+- prove that the morphisms `X ⟶ 𝒞.Ω` have a heyting-algebra structure
+- prove that the map `𝒞.Ω ⟶ 𝒞.Ω` induces a monotone closure-operation on all types `X ⟶ 𝒞.Ω`.
+
+- *Refactor* the construction turning lawvere-tierney topologies into grothendieck topologies to use closure-operations
+- prove that the internal notion of sheaves (w/r/t a LTT) corresponds to the external notion in the category of presheaves.
+
