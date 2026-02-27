@@ -1,5 +1,4 @@
-
-import CwFTT.Classifier.Ops
+import CwFTT.Classifier.Ops.And
 
 universe v u
 namespace CategoryTheory
@@ -163,6 +162,7 @@ noncomputable def LTT.closureLift {𝒞 : Classifier C} [HasFiniteLimits C] (j :
     j.closureObj (f ≫ g) ⟶ Y := by
   dsimp [LTT.closureObj]
   have := hg.isPullback
+
   apply hg.isPullback.lift (j.closure (f ≫ g)) (𝒞.χ₀ _) _
 
   trans 𝒞.χ (pullback.fst (j.closure (f ≫ g) ≫ 𝒞.χ g ≫ j.locally) (𝒞.truth))
@@ -225,7 +225,7 @@ Additionally, it is j.closed (.? , if m₂ is.?).
 
 
 -- if (`closure_Y X ≅ Y`) and (closure_Z Y ≅ Z), then (closure_Z X ≅ Z))?
--- somehow i'd like that 𝒞.χ m₂ factors through m₁, somehow
+-- somehow i'd like that 𝒞.χ m₂ factors through m₁
 -- lemma LTT.IsClosed.of_comp {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
 --     {X Y Z : C} {m₁ : X ⟶ Y} {m₂ : Y ⟶ Z} [Mono m₁] [Mono m₂]
 --     (hm₁ : j.IsClosed m₁) (hm₂ : j.IsClosed m₂) : j.IsClosed (m₁ ≫ m₂) := by
@@ -238,9 +238,11 @@ Additionally, it is j.closed (.? , if m₂ is.?).
 --
 -- intuition says this is true, but i'm not sure
 lemma LTT.IsDense.of_isDense_comp_left {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞)
-    {X Y Z : C} {m₁ : X ⟶ Y} {m₂ : Y ⟶ Z} [Mono m₁] [Mono m₂] (hm : j.IsDense (m₁ ≫ m₂)) :
+    {X Y Z : C} {m₁ : X ⟶ Y} {m₂ : Y ⟶ Z} [Mono (m₁ ≫ m₂)] [Mono m₂] (hm : j.IsDense (m₁ ≫ m₂)) :
     j.IsDense m₂ := by
-  rw [j.isDense_iff] at hm ⊢
+  rw [j.isDense_iff, 𝒞.χ_id] at hm ⊢
+
+  rw [← hm]
   sorry
   -- rw [← hm, 𝒞.χ_id, 𝒞.χ_id,
   --   reassoc_of% Subsingleton.elim (m₂ ≫ 𝒞.χ₀ _) (𝒞.χ₀ _)]
@@ -282,9 +284,10 @@ lemma LTT.isSeparated_iff_ {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT �
 An object `X` is a `j`-sheaf if for every `j`-dense morphism `m : R ⟶ Y`,
 the induced map (Y ⟶ X) → (R ⟶ X) is a bijection
 -/
+@[mk_iff]
 structure LTT.IsSheaf {𝒞 : Classifier C} [HasFiniteLimits C] (j : LTT 𝒞) (X : C) : Prop where
-  of_bijective {R Y : C} (m : R ⟶ Y) [Mono m] (hm : j.IsDense m) :
-    Function.Bijective (m ≫ · : _ → (R ⟶ X))
+  of_unique_factors {R Y : C} (m : R ⟶ Y) [Mono m] (hm : j.IsDense m) (f : R ⟶ X) :
+    ∃! g, m ≫ g = f
 
 
 -- independent of the classifier, we get a LTT.

@@ -1,4 +1,4 @@
-import Mathlib.CategoryTheory.Limits.Shapes.Pullback.CommSq
+import Mathlib.CategoryTheory.Limits.Shapes.Pullback.IsPullback.Basic
 
 open CategoryTheory Limits
 
@@ -42,7 +42,6 @@ where the top morphism is the diagonal of the pullback
     ↓          ↓
     B₁       → Z
 -/
-
 lemma CategoryTheory.IsPullback.pullback {X₁ X₂ X₃ X₄ : C} [HasBinaryProduct X₂ X₃]
     [HasBinaryProduct X₄ X₄] {f₁ : X₁ ⟶ X₂} {f₂ : X₁ ⟶ X₃}
     {f₃ : X₂ ⟶ X₄} {f₄ : X₃ ⟶ X₄} (hf : IsPullback f₁ f₂ f₃ f₄) :
@@ -71,7 +70,6 @@ lemma CategoryTheory.IsPullback.pullback {X₁ X₂ X₃ X₄ : C} [HasBinaryPro
       simp only [prod.comp_lift, prod.hom_ext_iff, limit.lift_π, BinaryFan.mk_pt, BinaryFan.mk_fst,
         BinaryFan.mk_snd] at hm₂ ⊢
       apply hf.hom_ext
-      -- apply Limits.prod.hom_ext
       · simpa using hm₂.left
       · simpa [hm₁] using hm₂.right
 
@@ -88,9 +86,9 @@ lemma CategoryTheory.IsPullback.prod {X₁ X₂ X₃ X₄ Y₁ Y₂ Y₃ Y₄ : 
       have := s.condition
       simp only [Limits.prod.hom_ext_iff, Category.assoc, prod.map_fst, prod.map_snd] at this
       apply prod.lift
-      · fapply hf.lift (s.fst ≫ prod.fst) (s.snd ≫ prod.fst)
+      · apply hf.lift (s.fst ≫ prod.fst) (s.snd ≫ prod.fst)
         simpa using this.left
-      · fapply hg.lift (s.fst ≫ prod.snd) (s.snd ≫ prod.snd)
+      · apply hg.lift (s.fst ≫ prod.snd) (s.snd ≫ prod.snd)
         simpa using this.right
     · intro s
       simp [Limits.prod.hom_ext_iff]
@@ -106,7 +104,6 @@ lemma CategoryTheory.IsPullback.prod {X₁ X₂ X₃ X₄ Y₁ Y₂ Y₃ Y₄ : 
       · apply hg.hom_ext
         · simpa using hm₁.right
         · simpa using hm₂.right
-    -- all_goals sorry
 
 lemma CategoryTheory.IsPullback.pullback_fst {C : Type*} [Category C] {A₁ A₂ A₃ B₁ B₂ B₃ Z₁ Z₂ : C}
     {f₁ : A₁ ⟶ Z₁} {f₂ : A₁ ⟶ A₂} {f₃ : Z₁ ⟶ A₃} {f₄ : A₂ ⟶ A₃} (hf : IsPullback f₁ f₂ f₃ f₄)
@@ -200,7 +197,6 @@ lemma CategoryTheory.IsPullback.of_comp_of_commsq {X₁ X₂ X₃ X₄ Z : C} {f
     IsPullback f₁ f₂ f₃ f₄ := by
   have hpb: IsPullback (f₁ ≫ 𝟙 _) (f₂ ≫ 𝟙 _) (f₃ ≫ g) (f₄ ≫ g) := by
     convert hfg <;> simp
-  -- have hf' : CommSq f₁ f₂ f₃ f₄ := hf
   refine ⟨⟨?_⟩,⟨?_⟩⟩
   · exact hf.w
   · apply PullbackCone.IsLimit.mk _ (fun s => hfg.lift s.fst s.snd (s.condition_assoc _))
@@ -222,3 +218,28 @@ lemma CategoryTheory.IsPullback.comp_lift {X₁ X₂ X₃ X₄ : C} {f₁ : X₁
     {Y₁ Y₂} (f : Y₁ ⟶ Y₂) {g₁ : Y₂ ⟶ X₂} {g₂ : Y₂ ⟶ X₃} (hg : g₁ ≫ f₃ = g₂ ≫ f₄) :
     f ≫ hf.lift g₁ g₂ hg = hf.lift (f ≫ g₁) (f ≫ g₂) (by simpa using congr(f ≫ $hg)) := by
   apply hf.hom_ext <;> simp
+
+section
+variable [HasInitial C] [∀ X : C, ∀ f : X ⟶ ⊥_ C, IsIso f]
+lemma CategoryTheory.IsPullback.initial_to_vert {X Y : C} (f : X ⟶ Y) :
+    IsPullback (𝟙 _) (initial.to X) (initial.to Y) f := by
+  refine {
+    w := by simp
+    isLimit' := by
+      constructor
+      apply PullbackCone.IsLimit.mk _ (fun s => s.fst) (by simp) (by
+        intro s
+        dsimp only
+        rw [← IsIso.eq_inv_comp (s.fst)]
+        exact Subsingleton.elim _ _) (by
+        intro s m
+        simp only [Category.comp_id]
+        rintro rfl
+        simp)
+  }
+
+lemma CategoryTheory.IsPullback.initial_to_hori {X Y : C} (f : X ⟶ Y) :
+    IsPullback (initial.to X) (𝟙 _) f (initial.to Y) :=
+    (IsPullback.initial_to_vert f).flip
+
+end

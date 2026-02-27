@@ -7,6 +7,8 @@ import Mathlib.CategoryTheory.Sites.ConcreteSheafification
 import Mathlib.CategoryTheory.Limits.Types.Pullbacks
 import Mathlib.CategoryTheory.Monoidal.Types.Basic
 import Mathlib.CategoryTheory.Sites.CartesianMonoidal
+import Mathlib.CategoryTheory.Sites.Subsheaf
+
 
 import CwFTT.Classifier.LTT
 import CwFTT.Classifier.Equivalence
@@ -25,7 +27,7 @@ section
 @[simps]
 def Sheaf.terminal {J : GrothendieckTopology C} : Sheaf J (Type (max u v)) where
   val := (CategoryTheory.Functor.const _).obj (PUnit)
-  cond := Presheaf.isSheaf_of_isTerminal J (Types.isTerminalPunit)
+  cond := Presheaf.isSheaf_of_isTerminal J (Types.isTerminalPUnit)
 
 def Sheaf.terminal.isTerminal {J : GrothendieckTopology C} : IsTerminal (Sheaf.terminal (J := J)) :=
   .ofUniqueHom (fun F => { val := { app X := (fun _ => .unit) } }) (by intros; ext; rfl)
@@ -404,7 +406,6 @@ lemma LTT.toGrothendieckTopology_toLTT (j : LTT (Presheaf.classifier C)) :
     rw [FunctorToTypes.naturality]
     rfl
 
-#print axioms GrothendieckTopology.toLTT
 
 lemma GrothendieckTopology.toLTT_toGrothendieckTopology (J : GrothendieckTopology C) :
   J.toLTT.toGrothendieckTopology = J := by
@@ -431,5 +432,189 @@ info: 'CategoryTheory.GrothendieckTopology.toLTT_toGrothendieckTopology' depends
 #print axioms GrothendieckTopology.toLTT_toGrothendieckTopology
 
 end
+
+section
+
+/-- The natural inclusions of a covering sieve into _ is dense with respect to the
+Lawvere-Tierney topology induced by a Grothendieck-topology -/
+lemma GrothendieckTopology.isDense_toLTT_functorInclusion_of_mem (J : GrothendieckTopology C)
+    {X : C} {S : Sieve X}
+    (hS : S ∈ J X) : J.toLTT.IsDense (Functor.whiskerRight S.functorInclusion uliftFunctor) := by
+  constructor
+  dsimp [Presheaf.classifier,sheafBotEquivalence,Presheaf.Ω_iso, Sheaf.χ]
+  simp only [ULift.up.injEq, ULift.exists, Subtype.exists, exists_prop, exists_eq_right',
+    Category.id_comp, GrothendieckTopology.toLTT, Category.assoc, ↓existsAndEq]
+  ext Y : 2
+  simp only [Functor.comp_obj, yoneda_obj_obj, uliftFunctor_obj, NatTrans.comp_app,
+    Functor.closedSieves_obj]
+  rw [funext_iff]
+  simp only [types_comp_apply, ULift.forall]
+  intro f
+  apply Sieve.ext
+  intro Z g
+  simp only [GrothendieckTopology.close_apply, iff_true]
+  rw [GrothendieckTopology.covers_iff]
+  change (S.pullback f).pullback g ∈ J Z
+  rw [← Sieve.pullback_comp]
+  exact GrothendieckTopology.pullback_stable J (g ≫ f) hS
+
+lemma GrothendieckTopology.mem_of_isDense_toLTT_functorInclusion (J : GrothendieckTopology C)
+    {X : C} {S : Sieve X}
+    (hS : J.toLTT.IsDense (Functor.whiskerRight S.functorInclusion uliftFunctor)) : S ∈ J X := by
+  rw [J.toLTT.isDense_iff] at hS
+  dsimp [Presheaf.classifier, sheafBotEquivalence, Presheaf.Ω_iso, Sheaf.χ, toLTT] at hS
+  simp only [ULift.up.injEq, ULift.exists, Subtype.exists, exists_prop, exists_eq_right',
+    Category.id_comp, Category.assoc, ↓existsAndEq] at hS
+  rw [NatTrans.ext_iff,funext_iff] at hS
+  specialize hS (.op X)
+  simp only [Functor.comp_obj, yoneda_obj_obj, uliftFunctor_obj, NatTrans.comp_app,
+    Functor.closedSieves_obj] at hS
+  rw [funext_iff] at hS
+  simp only [types_comp_apply, ULift.forall] at hS
+  specialize hS (𝟙 X)
+  rw [Sieve.ext_iff] at hS
+  simp only [Category.comp_id, close_apply, J.covers_iff, iff_true] at hS
+  specialize hS (𝟙 X)
+  simp only [Sieve.pullback_id] at hS
+  exact hS
+
+lemma GrothendieckTopology.isDense_toLTT_functorInclusion_iff_mem
+    (J : GrothendieckTopology C) {X : C} {S : Sieve X} :
+    J.toLTT.IsDense (Functor.whiskerRight S.functorInclusion uliftFunctor) ↔ S ∈ J X :=
+  ⟨J.mem_of_isDense_toLTT_functorInclusion,J.isDense_toLTT_functorInclusion_of_mem⟩
+
+/-- jvo ex. 3.63 -/
+example (J : GrothendieckTopology C) {A X : Cᵒᵖ ⥤ Type (max u v)} (m : A ⟶ X) [Mono m] :
+  J.toLTT.IsClosed m ↔ ∀ Y : C, ∀ x : X.obj (.op Y),
+    J.IsClosed (((Presheaf.classifier C).χ m).app _ x) := by
+  constructor
+  · intro h Y x
+    dsimp [sheafBotEquivalence]
+    rw [J.toLTT.isClosed_iff] at h
+    rw [GrothendieckTopology.isClosed_iff_close_eq_self]
+    simpa using congr($(h).app (.op Y) x)
+  · intro h
+    rw [J.toLTT.isClosed_iff]
+    ext Y x
+    specialize h Y.unop x
+    simp only [Opposite.op_unop, Presheaf.classifier_χ_app, sheafBotEquivalence,
+      Equivalence.Equivalence_mk'_counitInv, Iso.refl_inv, NatTrans.id_app, Functor.comp_obj,
+      sheafToPresheaf_obj, types_id_apply, Presheaf.classifier_Ω_obj, GrothendieckTopology.toLTT,
+      FunctorToTypes.comp] at h ⊢
+    exact J.close_eq_self_of_isClosed h
+
+
+
+example (J : GrothendieckTopology C) (F : Cᵒᵖ ⥤ Type v) :
+  Presieve.IsSheaf J F ↔ J.toLTT.IsSheaf (F ⋙ uliftFunctor) := by
+  constructor
+  · intro h
+    constructor
+    intro G H m hm₁ hm₂
+
+
+    sorry
+  · intro hF X S hS
+    rw [Presieve.isSheafFor_iff_yonedaSheafCondition (P := F) (S := S)]
+    intro f
+    rw [← J.isDense_toLTT_functorInclusion_iff_mem] at hS
+    rw [J.toLTT.isSheaf_iff] at hF
+    specialize hF _ hS (Functor.whiskerRight f uliftFunctor)
+    obtain ⟨g',hg,hguniq⟩ := hF
+    let g : yoneda.obj X ⟶ F := {
+      app Y := fun x => (g'.app Y (ULift.up x)).down
+      naturality Y Z f :=
+        funext fun _ => congr($(FunctorToTypes.naturality _ _ g' f (ULift.up _)).down)
+    }
+    use g
+    simp only at hguniq ⊢
+    refine ⟨NatTrans.ext (funext fun Y => types_ext _ _ (fun s => ?_)),fun y hy => ?_⟩
+    · simpa using congr(($(hg).app Y (ULift.up s)).down)
+    · specialize hguniq (Functor.whiskerRight y _)
+      rw [← Functor.whiskerRight_comp, hy] at hguniq
+      ext Y z
+      simpa using congr(($(hguniq rfl).app Y (ULift.up z)).down)
+
+end
+
+section
+
+variable (J : GrothendieckTopology C)
+
+def Classifier.ofDenseMonosSubfunctor (𝒞 : Classifier (Sheaf J (Type _)))
+    (P : MorphismProperty (Sheaf J (Type _))) :
+    Subfunctor (𝒞.Ω.val) where
+  obj X := {S : 𝒞.Ω.val.obj X |
+    ∃ (F G : Sheaf J (Type _)) (m₁ : F ⟶ G) (h:Mono m₁), -- there exists a subobject
+      P m₁ ∧ -- which is dense and
+      S ∈ Set.range ((𝒞.χ m₁).val.app X)} -- the sieve is in the image if its characteristic map.
+  map {X Y} f := by
+    intro S ⟨F,G,m,hm₁,hm₂,hS⟩
+    simp only [Set.mem_preimage,Set.mem_setOf, Set.mem_range] at hS ⊢
+    use F, G, m, hm₁, hm₂
+    obtain ⟨y,hy⟩ := hS
+    use (G.val.map f y)
+    rw [FunctorToTypes.naturality,hy]
+
+lemma ofDenseMonos_isSheaf (𝒞 : Classifier (Sheaf J (Type _)))
+    (P : MorphismProperty (Sheaf J (Type _))) :
+    Presheaf.IsSheaf J ((𝒞.ofDenseMonosSubfunctor J P)).toFunctor := by
+  rw [isSheaf_iff_isSheaf_of_type]
+  rw [Subfunctor.isSheaf_iff]
+  · intro X s hS
+    dsimp [Classifier.ofDenseMonosSubfunctor]
+    dsimp [Subfunctor.sieveOfSection,Classifier.ofDenseMonosSubfunctor] at hS
+    simp at hS
+    sorry
+  · rw [← isSheaf_iff_isSheaf_of_type]
+    exact 𝒞.Ω.cond
+
+  -- simp? at hS
+
+
+
+lemma ofDenseMonos_isSheaf' (𝒞 : Classifier (Sheaf J (Type _)))
+    (P : MorphismProperty (Sheaf J (Type _))) :
+    Presheaf.IsSheaf J ((𝒞.ofDenseMonosSubfunctor J P).sheafify J).toFunctor := by
+  rw [isSheaf_iff_isSheaf_of_type]
+  apply Subfunctor.sheafify_isSheaf
+  rw [← isSheaf_iff_isSheaf_of_type]
+  exact 𝒞.Ω.cond
+
+def Classifier.ofDenseMonosSheaf (𝒞 : Classifier (Sheaf J (Type _)))
+    (P : MorphismProperty (Sheaf J (Type _))) :
+    Sheaf J (Type _) :=
+  ⟨((𝒞.ofDenseMonosSubfunctor J P).sheafify J).toFunctor,ofDenseMonos_isSheaf' J 𝒞 P⟩
+
+def ofDenseMonosSheafToΩ (𝒞 : Classifier (Sheaf J (Type _)))
+    (P : MorphismProperty (Sheaf J (Type _))) : 𝒞.ofDenseMonosSheaf J P ⟶ 𝒞.Ω where
+  val := ((𝒞.ofDenseMonosSubfunctor J P).sheafify J).ι
+
+instance (𝒞 : Classifier (Sheaf J (Type _)))
+    (P : MorphismProperty (Sheaf J (Type _))) : Mono (ofDenseMonosSheafToΩ J 𝒞 P) := by
+  dsimp only [ofDenseMonosSheafToΩ]
+  apply Sheaf.Hom.mono_of_presheaf_mono
+
+lemma dense_is_dense (𝒞 : Classifier (Sheaf J (Type _)))
+    (P : MorphismProperty (Sheaf J (Type _))) {F G : Sheaf J (Type _)} {m : F ⟶ G} [Mono m]
+    (hM : P m) : 𝒞.χ m ≫ (𝒞.χ (ofDenseMonosSheafToΩ J 𝒞 P)) = 𝒞.χ (𝟙 _) := by
+  rw [𝒞.χ_id]
+  have : Subfunctor.range (𝒞.χ m).val ≤ (𝒞.ofDenseMonosSubfunctor J P).sheafify J := by
+    apply le_trans _ (Subfunctor.le_sheafify _ _)
+    intro X _
+    simp only [Subfunctor.range_obj, Set.mem_range, forall_exists_index,
+      Classifier.ofDenseMonosSubfunctor, Set.mem_setOf]
+    rintro g rfl
+    use F, G, m, inferInstance, hM, g
+  have foo := congr(Sheaf.Hom.mk $(Subfunctor.lift_ι _ this))
+  change Sheaf.Hom.mk (Subfunctor.lift _ this) ≫ ofDenseMonosSheafToΩ J 𝒞 P = 𝒞.χ m at foo
+  rw [← foo, Category.assoc, (𝒞.isPullback _ ).w, 𝒞.comp_χ₀_assoc]
+
+-- lemma dense_top (𝒞 : Classifier)
+-- if P ∩ mono is closed under arbitrary intersection, then...
+-- lemma comp_self -- somehow,
+
+end
+
 
 end CategoryTheory

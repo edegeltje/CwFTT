@@ -114,6 +114,34 @@ lemma IsPullback.pullback_monoidal {X₁ X₂ X₃ X₄ : C}
       · simpa using hm₂.left
       · simpa [hm₁] using hm₂.right
 
+lemma IsPullback.of_pullback_monoidal {X₁ X₂ X₃ X₄ : C}
+    {f₁ : X₁ ⟶ X₂} {f₂ : X₁ ⟶ X₃}
+    {f₃ : X₂ ⟶ X₄} {f₄ : X₃ ⟶ X₄} (hpb : IsPullback (f₁ ≫ f₃)
+      (CartesianMonoidalCategory.lift f₁ f₂) (CartesianMonoidalCategory.lift (𝟙 X₄) (𝟙 _))
+      (f₃ ⊗ₘ f₄)) : IsPullback f₁ f₂ f₃ f₄ where
+  w := by simpa using congr($(hpb.w) ≫ CartesianMonoidalCategory.snd _ _)
+  isLimit' := by
+    constructor
+    fapply PullbackCone.IsLimit.mk _
+      (fun s => hpb.lift
+        (s.fst ≫ f₃) (CartesianMonoidalCategory.lift s.fst s.snd) (by simp [s.condition]))
+      (by
+        intro s
+        nth_rw 3 [← CartesianMonoidalCategory.lift_fst f₁ f₂]
+        rw [IsPullback.lift_snd_assoc, CartesianMonoidalCategory.lift_fst])
+      (by
+        intro s
+        simp only
+        nth_rw 2 [← CartesianMonoidalCategory.lift_snd f₁ f₂]
+        rw [IsPullback.lift_snd_assoc, CartesianMonoidalCategory.lift_snd])
+      (by
+        intro s m hm₁ hm₂
+        apply hpb.hom_ext
+        · rw [reassoc_of% hm₁]
+          simp
+        · rw [IsPullback.lift_snd]
+          simp_all)
+
 lemma IsPullback.pullback_fst_monoidal {A₁ A₂ A₃ B₁ B₂ B₃ Z₁ Z₂ : C}
     {f₁ : A₁ ⟶ Z₁} {f₂ : A₁ ⟶ A₂} {f₃ : Z₁ ⟶ A₃} {f₄ : A₂ ⟶ A₃} (hf : IsPullback f₁ f₂ f₃ f₄)
     {g₁ : B₁ ⟶ Z₁} {g₂ : B₁ ⟶ B₂} {g₃ : Z₁ ⟶ B₃} {g₄ : B₂ ⟶ B₃} (hg : IsPullback g₁ g₂ g₃ g₄)
@@ -167,5 +195,29 @@ lemma IsPullback.graph' {X Y : C} (f : X ⟶ Y) :
   simp at this
   convert (hf.paste_horiz this.flip) <;> simp
 
+section equalizer
 
+lemma IsPullback.equalizer_monoidal {X Y : C} (f g : X ⟶ Y) [HasEqualizer f g] :
+    IsPullback (equalizer.ι f g) (equalizer.ι f g ≫ f)
+      (CartesianMonoidalCategory.lift f g) (CartesianMonoidalCategory.lift (𝟙 Y) (𝟙 Y)) where
+  w := by
+    apply CartesianMonoidalCategory.hom_ext <;> simp [equalizer.condition f g]
+  isLimit' := by
+    constructor
+    refine PullbackCone.IsLimit.mk _ (fun s => (equalizer.lift s.fst ?_)) ?_ ?_ ?_
+    · nth_rw 6 [← CartesianMonoidalCategory.lift_snd f g]
+      nth_rw 4 [← CartesianMonoidalCategory.lift_fst f g]
+      rw [s.condition_assoc, s.condition_assoc, CartesianMonoidalCategory.lift_fst,
+        CartesianMonoidalCategory.lift_snd]
+    · intro s
+      simp
+    · intro s
+      simp only [limit.lift_π_assoc, Fork.ofι_pt, parallelPair_obj_zero, Fork.ofι_π_app]
+      nth_rw 4 [← CartesianMonoidalCategory.lift_fst f g]
+      rw [s.condition_assoc,CartesianMonoidalCategory.lift_fst,Category.comp_id]
+    · intro s m hm₁ hm₂
+      apply equalizer.hom_ext
+      simp [hm₁]
+
+end equalizer
 end CategoryTheory
