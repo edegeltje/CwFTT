@@ -57,19 +57,8 @@ lemma IsPullback.whiskerRight_horiz [CartesianMonoidalCategory C] {X Y : C} (f :
 
 lemma IsPullback.braiding_vert [MonoidalCategory C] [BraidedCategory C] {X₁ X₂ X₃ X₄ : C}
     (f : X₁ ⟶ X₃) (g : X₂ ⟶ X₄) :
-    IsPullback (f ⊗ₘ g) (β_ X₁ X₂).hom (β_ _ _).hom (g ⊗ₘ f) where
-  w := by
-    simp
-  isLimit' := by
-    constructor
-    apply PullbackCone.IsLimit.mk _ (fun s => s.snd ≫ (β_ _ _).inv)
-    · intro s
-      rw [← cancel_mono (β_ _ _).hom]
-      simp [s.condition]
-    · simp
-    · intro s m hm₁ hm₂
-      rw [← cancel_mono (β_ _ _).hom]
-      simp [hm₂]
+    IsPullback (f ⊗ₘ g) (β_ X₁ X₂).hom (β_ _ _).hom (g ⊗ₘ f) :=
+  .of_vert_isIso (by simp)
 
 lemma IsPullback.whiskerLeft_horiz [CartesianMonoidalCategory C] {X Y : C} (f : X ⟶ Y) (Z : C) :
     IsPullback (Z ◁ f) (snd Z X) (snd Z Y) f := by
